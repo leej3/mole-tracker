@@ -40,3 +40,9 @@ yarn-error.*
 .vercel
 
 .env
+
+# Personal records, backups, and the removed source dump
+*.sqlite
+*.sqlite3
+*.db
+/Mole-Tracker-source-code.pdf

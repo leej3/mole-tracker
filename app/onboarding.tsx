@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/Button";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-const STEPS = ["disclaimer", "profile", "body_type", "tutorial"] as const;
+const STEPS = ["profile", "body_type", "tutorial"] as const;
 type Step = (typeof STEPS)[number];
 
 export default function OnboardingScreen() {
@@ -26,8 +26,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { completeOnboarding, createProfile } = useApp();
 
-  const [step, setStep] = useState<Step>("disclaimer");
-  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+  const [step, setStep] = useState<Step>("profile");
   const [profileName, setProfileName] = useState("");
   const [birthYear, setBirthYear] = useState("");
   const [relationship, setRelationship] = useState("Myself");
@@ -38,7 +37,6 @@ export default function OnboardingScreen() {
   const progress = (stepIndex + 1) / STEPS.length;
 
   const goNext = async () => {
-    if (step === "disclaimer" && !disclaimerChecked) return;
     if (step === "profile") {
       if (!profileName.trim()) return;
     }
@@ -88,13 +86,6 @@ export default function OnboardingScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {step === "disclaimer" && (
-          <DisclaimerStep
-            checked={disclaimerChecked}
-            onToggle={() => setDisclaimerChecked((v) => !v)}
-            colors={colors}
-          />
-        )}
         {step === "profile" && (
           <ProfileStep
             name={profileName}
@@ -134,7 +125,6 @@ export default function OnboardingScreen() {
           title={step === "tutorial" ? "Get Started" : "Continue"}
           onPress={goNext}
           disabled={
-            (step === "disclaimer" && !disclaimerChecked) ||
             (step === "profile" && !profileName.trim())
           }
           loading={loading}
@@ -142,76 +132,6 @@ export default function OnboardingScreen() {
           fullWidth
         />
       </View>
-    </View>
-  );
-}
-
-function DisclaimerStep({
-  checked,
-  onToggle,
-  colors,
-}: {
-  checked: boolean;
-  onToggle: () => void;
-  colors: any;
-}) {
-  return (
-    <View style={styles.stepContainer}>
-      <View
-        style={[styles.iconCircle, { backgroundColor: colors.primaryLight }]}
-      >
-        <Feather name="shield" size={36} color={colors.primary} />
-      </View>
-      <Text style={[styles.stepTitle, { color: colors.foreground }]}>
-        Important Disclaimer
-      </Text>
-      <Text style={[styles.stepSubtitle, { color: colors.mutedForeground }]}>
-        Please read carefully before continuing
-      </Text>
-
-      <View
-        style={[styles.disclaimerBox, { backgroundColor: colors.surface, borderColor: colors.border }]}
-      >
-        <Text style={[styles.disclaimerText, { color: colors.foreground }]}>
-          <Text style={{ fontFamily: "Inter_600SemiBold" }}>
-            Mole Tracker is not a medical device.{"\n\n"}
-          </Text>
-          This app is designed to help you{" "}
-          <Text style={{ fontFamily: "Inter_600SemiBold" }}>
-            organize and document
-          </Text>{" "}
-          your moles over time so you can share this information with a
-          healthcare professional.{"\n\n"}
-          Mole Tracker does{" "}
-          <Text style={{ fontFamily: "Inter_600SemiBold" }}>not diagnose</Text>{" "}
-          skin conditions, cancer, or any other medical condition. Concern
-          scores and summaries are for educational tracking only.{"\n\n"}
-          If you are concerned about any skin change, please consult a qualified
-          dermatologist or your primary care physician promptly.
-        </Text>
-      </View>
-
-      <Pressable
-        onPress={onToggle}
-        style={styles.checkRow}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <View
-          style={[
-            styles.checkbox,
-            {
-              backgroundColor: checked ? colors.primary : colors.surface,
-              borderColor: checked ? colors.primary : colors.border,
-            },
-          ]}
-        >
-          {checked && <Feather name="check" size={14} color="#fff" />}
-        </View>
-        <Text style={[styles.checkLabel, { color: colors.foreground }]}>
-          I understand this app is for personal tracking only and not a
-          substitute for professional medical advice.
-        </Text>
-      </Pressable>
     </View>
   );
 }
@@ -427,8 +347,8 @@ function TutorialStep({ colors }: { colors: any }) {
     },
     {
       icon: "share-2" as const,
-      title: "Share with your doctor",
-      desc: "Export a clear PDF report to share at your next appointment.",
+      title: "Keep your history",
+      desc: "Download a backup from Backups. A printable doctor report is planned.",
     },
   ];
 
@@ -443,8 +363,8 @@ function TutorialStep({ colors }: { colors: any }) {
         How It Works
       </Text>
       <Text style={[styles.stepSubtitle, { color: colors.mutedForeground }]}>
-        Mole Tracker makes it easy to document and share your skin health
-        history.
+        Mole Tracker keeps a personal skin history; it does not diagnose skin conditions.
+        If a spot is new, changing, itching, or bleeding, seek advice from a qualified clinician.
       </Text>
 
       <View style={styles.tutorialList}>

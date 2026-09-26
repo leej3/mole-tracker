@@ -49,7 +49,7 @@ export function BackupControls() {
   return (
     <View style={[styles.container, { borderTopColor: colors.border }] }>
       <Text style={[styles.title, { color: colors.foreground }]}>Browser backup</Text>
-      <Text style={[styles.description, { color: colors.mutedForeground }]}>Download a SQLite file containing your profiles, mole records, and photos. Restoring replaces this browser’s current records.</Text>
+      <Text style={[styles.description, { color: colors.mutedForeground }]}>Download an unencrypted SQLite file containing all profiles, records, and photos. Save a current backup before restoring; restore replaces this browser’s records.</Text>
       <View style={styles.actions}>
         <Pressable disabled={busy} onPress={downloadBackup} style={[styles.button, { backgroundColor: colors.primary, opacity: busy ? 0.6 : 1 }]}>
           <Text style={styles.primaryLabel}>{busy ? "Please wait…" : "Download backup"}</Text>

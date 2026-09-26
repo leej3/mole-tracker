@@ -4,7 +4,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Mole } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { calculateConcernScore, CONCERN_SCORE_COLORS, CONCERN_SCORE_LABELS, SYMPTOM_LABELS } from "@/utils/scoring";
+import { SYMPTOM_LABELS } from "@/utils/scoring";
 import { Card } from "./ui/Card";
 
 interface MoleCardProps {
@@ -14,8 +14,7 @@ interface MoleCardProps {
 export function MoleCard({ mole }: MoleCardProps) {
   const colors = useColors();
   const router = useRouter();
-  const score = calculateConcernScore(mole);
-  const scoreColor = CONCERN_SCORE_COLORS[score];
+  const scoreColor = colors.primary;
   const displayName = mole.customName || mole.defaultName;
   const lastUpdated = new Date(mole.updatedAt).toLocaleDateString("en-US", {
     month: "short",
@@ -33,14 +32,6 @@ export function MoleCard({ mole }: MoleCardProps) {
       <Card style={[styles.card, { borderLeftColor: scoreColor, borderLeftWidth: 4 }]}>
         <View style={styles.header}>
           <View style={styles.titleArea}>
-            <View
-              style={[
-                styles.scoreIndicator,
-                { backgroundColor: scoreColor },
-              ]}
-            >
-              <Text style={styles.scoreNum}>{score}</Text>
-            </View>
             <View style={styles.titleTexts}>
               <Text
                 style={[styles.name, { color: colors.foreground }]}
@@ -61,11 +52,6 @@ export function MoleCard({ mole }: MoleCardProps) {
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         <View style={styles.footer}>
-          <View style={[styles.footerItem, styles.levelBadge, { backgroundColor: scoreColor + '22', borderColor: scoreColor + '55' }]}>
-            <Text style={[styles.levelText, { color: scoreColor }]}>
-              Level {score}/5
-            </Text>
-          </View>
           <View style={styles.footerItem}>
             <Feather name="image" size={12} color={colors.mutedForeground} />
             <Text style={[styles.footerText, { color: colors.mutedForeground }]}>

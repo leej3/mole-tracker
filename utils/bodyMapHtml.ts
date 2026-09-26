@@ -1,5 +1,5 @@
 import { Mole } from "@/context/AppContext";
-import { calculateConcernScore, CONCERN_SCORE_COLORS } from "@/utils/scoring";
+import { CONCERN_SCORE_COLORS } from "@/utils/scoring";
 
 export interface PinPlacedEvent {
   x: number; y: number; z: number;
@@ -116,7 +116,7 @@ export function buildHtml(
   gender: string = "male"
 ): string {
   const pinData = moles.map((m) => {
-    const s = calculateConcernScore(m);
+    const s = 1; // Pins identify records; they do not communicate medical risk.
     return {
       id: m.id, x: m.bodyX, y: m.bodyY, region: m.bodyRegion,
       view: m.bodyView ?? "front",
@@ -125,7 +125,7 @@ export function buildHtml(
     };
   });
 
-  // All data injected via JSON.stringify — no inline JS literal risk
+  // Escape HTML script terminators as well as JavaScript string syntax.
   const ANT_JSON = JSON.stringify(ANT);
   const POST_JSON = JSON.stringify(POST);
   const LABELS_JSON = JSON.stringify(LABELS);
@@ -178,7 +178,7 @@ svg.body-svg{width:100%;height:100%}
 
 <script>
 (function(){
-var PINS=${JSON.stringify(pinData)};
+var PINS=${JSON.stringify(pinData).replace(/</g, "\\u003c")};
 var INTERACTIVE=${interactive};
 var PRIMARY='${primaryColor}';
 var ANT=${ANT_JSON};
@@ -189,6 +189,7 @@ var PART_INFO=${PART_INFO_JSON};
 
 function post(d){if(typeof window.ReactNativeWebView!=='undefined')window.ReactNativeWebView.postMessage(d);else window.parent.postMessage(d,'*');}
 
+function escapeMarkup(value){return String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 var bview='front',mode='overview',selPart=null;
 function getBodyData(){return bview==='front'?ANT:POST;}
 
@@ -311,7 +312,7 @@ function renderDetailSVG(){
     var d=getBodyData();
     var ids=d.map(function(x){return x.id;}).join(', ');
     var dbg='id="'+selPart.id+'" bview='+bview+' n='+d.length+' ids: '+ids;
-    wrap.innerHTML='<div style="display:flex;flex-direction:column;align-items:flex-start;height:100%;color:#3a6a3a;font-size:13px;padding:20px;gap:8px;word-break:break-all;overflow:auto"><b>Region not available</b><span style="font-size:10px;line-height:1.5">'+dbg+'</span></div>';
+    wrap.innerHTML='<div style="display:flex;flex-direction:column;align-items:flex-start;height:100%;color:#3a6a3a;font-size:13px;padding:20px;gap:8px;word-break:break-all;overflow:auto"><b>Region not available</b><span style="font-size:10px;line-height:1.5">'+escapeMarkup(dbg)+'</span></div>';
     return;
   }
 
@@ -332,11 +333,11 @@ function renderDetailSVG(){
   myp.forEach(function(p){
     var sx=geo.minX+p.x*geo.bw;
     var sy=geo.minY+p.y*geo.bh;
-    pins+='<g class="pin-group" data-id="'+p.id+'" style="cursor:pointer">';
+    pins+='<g class="pin-group" data-id="'+escapeMarkup(p.id)+'" style="cursor:pointer">';
     pins+='<circle cx="'+sx+'" cy="'+sy+'" r="'+(pinR*1.6)+'" fill="rgba(255,255,255,0.5)" pointer-events="none"/>';
-    pins+='<circle cx="'+sx+'" cy="'+sy+'" r="'+pinR+'" fill="'+(p.color||'${primaryColor}')+'" stroke="white" stroke-width="'+(pinR*0.28)+'"/>';
+    pins+='<circle cx="'+sx+'" cy="'+sy+'" r="'+pinR+'" fill="'+escapeMarkup(p.color||'${primaryColor}')+'" stroke="white" stroke-width="'+(pinR*0.28)+'"/>';
     pins+='<circle cx="'+sx+'" cy="'+sy+'" r="'+(pinR*0.32)+'" fill="rgba(255,255,255,0.9)" pointer-events="none"/>';
-    if(p.name){pins+='<text x="'+sx+'" y="'+(sy+pinR*1.8)+'" text-anchor="middle" dominant-baseline="middle" font-size="'+(pinR*0.8)+'" fill="#1a4a1a" pointer-events="none">'+p.name+'</text>';}
+    if(p.name){pins+='<text x="'+sx+'" y="'+(sy+pinR*1.8)+'" text-anchor="middle" dominant-baseline="middle" font-size="'+(pinR*0.8)+'" fill="#1a4a1a" pointer-events="none">'+escapeMarkup(p.name)+'</text>';}
     pins+='</g>';
   });
 
@@ -429,6 +430,7 @@ function setView(v){
 window.setView=setView;
 
 window.addEventListener('message',function(e){
+  if(window.parent!==window&&e.source!==window.parent)return;
   try{var msg=typeof e.data==='string'?JSON.parse(e.data):e.data;
     if(msg.type==='goBack')goBack();
     else if(msg.type==='selectPart')enterDetail(msg.bodyPart,LABELS[msg.bodyPart]||msg.bodyPart);

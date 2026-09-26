@@ -20,13 +20,9 @@ import { pickPhoto as selectPhoto } from "@/lib/photo-picker";
 import { getPhotoInputBehavior } from "@/lib/photo-input";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { ScoreBar } from "@/components/ui/ScoreBar";
 import {
   ABCDE_DESCRIPTIONS,
-  CONCERN_SCORE_DISCLAIMER,
-  HIGH_SCORE_DISCLAIMER,
   SYMPTOM_LABELS,
-  calculateConcernScore,
   getABCDESummary,
 } from "@/utils/scoring";
 
@@ -46,7 +42,6 @@ export default function MoleDetailScreen() {
   const [activeTab, setActiveTab] = useState<"overview" | "photos" | "history" | "abcde">("overview");
   const [comparingPhotos, setComparingPhotos] = useState<[string, string] | null>(null);
 
-  const score = useMemo(() => (mole ? calculateConcernScore(mole) : 1), [mole]);
   const abcde = useMemo(() => (mole ? getABCDESummary(mole) : null), [mole]);
 
   useEffect(() => {
@@ -85,12 +80,10 @@ export default function MoleDetailScreen() {
 
   const saveUpdate = async () => {
     if (!newNote && !newSizeMm) return;
-    const newScore = calculateConcernScore(mole);
     await addUpdateLog(mole.id, {
       timestamp: new Date().toISOString(),
       sizeMm: newSizeMm ? parseFloat(newSizeMm) : undefined,
       note: newNote || undefined,
-      aiScoreSnapshot: newScore,
     });
     if (newSizeMm) {
       await updateMole(mole.id, { latestSizeMm: parseFloat(newSizeMm) });
@@ -122,7 +115,7 @@ export default function MoleDetailScreen() {
     { key: "overview", label: "Overview" },
     { key: "photos", label: `Photos (${mole.photos.length})` },
     { key: "history", label: "History" },
-    { key: "abcde", label: "ABCDE" },
+    { key: "abcde", label: "Observations" },
   ] as const;
 
   return (
@@ -215,7 +208,7 @@ export default function MoleDetailScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {activeTab === "overview" && (
-          <OverviewTab mole={mole} score={score} colors={colors} />
+          <OverviewTab mole={mole} colors={colors} />
         )}
         {activeTab === "photos" && (
           <PhotosTab
@@ -239,43 +232,23 @@ export default function MoleDetailScreen() {
           />
         )}
         {activeTab === "abcde" && abcde && (
-          <ABCDETab abcde={abcde} score={score} colors={colors} />
+          <ABCDETab abcde={abcde} colors={colors} />
         )}
       </ScrollView>
     </View>
   );
 }
 
-function OverviewTab({ mole, score, colors }: { mole: any; score: number; colors: any }) {
+function OverviewTab({ mole, colors }: { mole: any; colors: any }) {
   const activeSymptoms = mole.symptomFlags.filter((s: SymptomFlag) => s !== "none");
 
   return (
     <View style={styles.tabContent}>
-      <Card elevated>
-        <Text style={[styles.cardLabel, { color: colors.mutedForeground }]}>
-          Concern Score
-        </Text>
-        <View style={{ marginTop: 8 }}>
-          <ScoreBar score={score} />
-        </View>
-        {score >= 3 && (
-          <View style={[styles.highScoreBox, { backgroundColor: colors.warningLight }]}>
-            <Feather name="alert-circle" size={14} color={colors.warning} />
-            <Text style={[styles.highScoreText, { color: colors.warning }]}>
-              {HIGH_SCORE_DISCLAIMER}
-            </Text>
-          </View>
-        )}
-        <Text style={[styles.disclaimerSmall, { color: colors.mutedForeground }]}>
-          {CONCERN_SCORE_DISCLAIMER}
-        </Text>
-      </Card>
-
       <Card>
         <Text style={[styles.cardLabel, { color: colors.mutedForeground }]}>
           Details
         </Text>
-        <InfoRow label="First noticed" value={new Date(mole.firstNoticedDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} colors={colors} />
+        <InfoRow label="First noticed" value={new Date(`${mole.firstNoticedDate}T12:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} colors={colors} />
         {mole.latestSizeMm && (
           <InfoRow label="Latest size" value={`~${mole.latestSizeMm}mm (estimate)`} colors={colors} />
         )}
@@ -319,12 +292,7 @@ function OverviewTab({ mole, score, colors }: { mole: any; score: number; colors
         </Card>
       )}
 
-      <View style={[styles.urgentWarning, { backgroundColor: "#fff3e0", borderColor: "#e65100" }]}>
-        <Feather name="alert-triangle" size={16} color="#e65100" />
-        <Text style={[styles.urgentText, { color: "#bf360c" }]}>
-          If you notice sudden rapid growth, bleeding, or severe color changes, seek prompt medical attention. This app does not diagnose medical conditions.
-        </Text>
-      </View>
+
     </View>
   );
 }
@@ -551,11 +519,7 @@ function HistoryTab({
                     Size: ~{log.sizeMm}mm
                   </Text>
                 )}
-                {log.aiScoreSnapshot && (
-                  <View style={styles.scoreRow}>
-                    <ScoreBar score={log.aiScoreSnapshot} compact />
-                  </View>
-                )}
+
               </View>
             </View>
           ))}
@@ -565,7 +529,7 @@ function HistoryTab({
   );
 }
 
-function ABCDETab({ abcde, score, colors }: { abcde: any; score: number; colors: any }) {
+function ABCDETab({ abcde, colors }: { abcde: any; colors: any }) {
   const items = [
     { key: "asymmetry", letter: "A", label: "Asymmetry", desc: ABCDE_DESCRIPTIONS.asymmetry },
     { key: "border", letter: "B", label: "Border", desc: ABCDE_DESCRIPTIONS.border },
@@ -606,12 +570,7 @@ function ABCDETab({ abcde, score, colors }: { abcde: any; score: number; colors:
         </Card>
       ))}
 
-      <View style={[styles.disclaimerBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Feather name="info" size={14} color={colors.mutedForeground} />
-        <Text style={[styles.disclaimerBoxText, { color: colors.mutedForeground }]}>
-          {CONCERN_SCORE_DISCLAIMER}
-        </Text>
-      </View>
+
     </View>
   );
 }

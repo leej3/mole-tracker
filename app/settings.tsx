@@ -79,29 +79,13 @@ export default function SettingsScreen() {
           About
         </Text>
         <Card>
-          <SettingsRow
-            icon="info"
-            label="About Mole Tracker"
-            onPress={() =>
-              Alert.alert(
-                "About Mole Tracker",
-                "Mole Tracker helps you document skin moles over time and share a clear visual history with your doctor.\n\nVersion 1.0.0"
-              )
-            }
-            colors={colors}
-          />
-          <SettingsRow
-            icon="shield"
-            label="Medical Disclaimer"
-            onPress={() =>
-              Alert.alert(
-                "Medical Disclaimer",
-                "Mole Tracker is not a medical device and does not diagnose any condition. All scores and summaries are for personal educational tracking only.\n\nAlways consult a qualified healthcare professional about any skin concerns."
-              )
-            }
-            colors={colors}
-            last
-          />
+          <Text style={{ color: colors.foreground, lineHeight: 22 }}>
+            Mole Tracker keeps a personal skin history; it does not diagnose skin conditions.
+            If a spot is new, changing, itching, or bleeding, seek advice from a qualified clinician.
+          </Text>
+          <SettingsRow icon="external-link" label="Skin self-exam guide (AAD)"
+            onPress={() => Linking.openURL("https://www.aad.org/public/diseases/skin-cancer/check-skin")}
+            colors={colors} last />
         </Card>
 
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
@@ -117,7 +101,7 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="lock"
             label="Privacy First"
-            sublabel={Platform.OS === "web" ? "Photos and health records stay in this browser" : "Photos and health data never leave your device"}
+            sublabel={Platform.OS === "web" ? "No automatic photo uploads. Browser storage and backups are not encrypted." : "Photos and health data never leave your device"}
             colors={colors}
             last
           />

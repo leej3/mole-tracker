@@ -62,7 +62,7 @@ export function calculateConcernScore(mole: Mole): number {
   }
 
   if (mole.updateLog.length >= 2) {
-    const logs = mole.updateLog.sort(
+    const logs = [...mole.updateLog].sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
     const first = logs[0];
@@ -78,62 +78,13 @@ export function calculateConcernScore(mole: Mole): number {
 }
 
 export function getABCDESummary(mole: Mole): ABCDESnapshot {
-  const existing = mole.abcdeSummary || {};
-
   return {
-    asymmetry: existing.asymmetry || deriveAsymmetry(mole),
-    border: existing.border || deriveBorder(mole),
-    color: existing.color || deriveColor(mole),
-    diameter: existing.diameter || deriveDiameter(mole),
-    evolution: existing.evolution || deriveEvolution(mole),
+    asymmetry: mole.shapeNotes || "Not recorded",
+    border: mole.borderNotes || "Not recorded",
+    color: mole.colorNotes || "Not recorded",
+    diameter: mole.latestSizeMm ? `~${mole.latestSizeMm} mm (user estimate)` : "Not recorded",
+    evolution: "See dated observations in History",
   };
-}
-
-function deriveAsymmetry(mole: Mole): string {
-  if (mole.shapeNotes?.toLowerCase().includes("irregular")) {
-    return "Possible asymmetry noted";
-  }
-  return "No asymmetry recorded";
-}
-
-function deriveBorder(mole: Mole): string {
-  if (
-    mole.borderNotes?.toLowerCase().includes("irregular") ||
-    mole.borderNotes?.toLowerCase().includes("uneven")
-  ) {
-    return "Irregular or poorly defined border";
-  }
-  return "Border appears regular";
-}
-
-function deriveColor(mole: Mole): string {
-  if (
-    mole.colorNotes?.toLowerCase().includes("mix") ||
-    mole.colorNotes?.toLowerCase().includes("multi") ||
-    mole.colorNotes?.toLowerCase().includes("varied")
-  ) {
-    return "Multiple colors present";
-  }
-  return "Uniform coloration";
-}
-
-function deriveDiameter(mole: Mole): string {
-  if (!mole.latestSizeMm) return "Size not recorded";
-  if (mole.latestSizeMm >= 6) {
-    return `~${mole.latestSizeMm}mm — at or above 6mm (pencil eraser)`;
-  }
-  return `~${mole.latestSizeMm}mm — within common range`;
-}
-
-function deriveEvolution(mole: Mole): string {
-  if (mole.updateLog.length < 2) return "Not enough history to assess evolution";
-  const hasGrowth = mole.symptomFlags.includes("rapid_growth");
-  const hasColorChange = mole.symptomFlags.includes("color_darkening");
-  const hasIrregular = mole.symptomFlags.includes("irregular_border");
-  if (hasGrowth || hasColorChange || hasIrregular) {
-    return "Changes recorded — worth monitoring";
-  }
-  return "No significant changes recorded";
 }
 
 export const SYMPTOM_LABELS: Record<SymptomFlag, string> = {

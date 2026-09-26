@@ -13,7 +13,7 @@ import {
   PinPlacedEvent,
   buildHtml,
 } from "@/utils/bodyMapHtml";
-import { calculateConcernScore, CONCERN_SCORE_COLORS } from "@/utils/scoring";
+import { CONCERN_SCORE_COLORS } from "@/utils/scoring";
 
 export type { BodyMap3DHandle, BodyMap3DProps, PinPlacedEvent };
 
@@ -92,9 +92,9 @@ export const BodyMap3D = forwardRef<BodyMap3DHandle, BodyMap3DProps>(
       // Push updated pins to the iframe
       const iframe = iframeRef.current;
       if (!iframe?.contentWindow) return;
-      // Build pin data the same way buildHtml does — use live calculated score
+      // Keep pin data consistent with the neutral markers in buildHtml.
       const pins = moles.map((m) => {
-        const s = calculateConcernScore(m);
+        const s = 1; // Pins identify records; they do not communicate medical risk.
         return {
           id: m.id,
           x: m.bodyX,
@@ -121,6 +121,9 @@ export const BodyMap3D = forwardRef<BodyMap3DHandle, BodyMap3DProps>(
         width:100%; height:100%; border:none; display:block;
         border-radius:20px; background:${colors.surfaceElevated};
       `;
+      iframe.title = "Body map: select a region and spot";
+      // The map can run scripts but cannot access the parent database or DOM.
+      iframe.setAttribute("sandbox", "allow-scripts");
       iframe.srcdoc = html;
 
       container.appendChild(iframe);

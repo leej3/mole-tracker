@@ -16,7 +16,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { BodyView, SymptomFlag, useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { Button } from "@/components/ui/Button";
-import { SYMPTOM_LABELS, calculateConcernScore } from "@/utils/scoring";
+import { SYMPTOM_LABELS } from "@/utils/scoring";
 
 export default function NewMoleScreen() {
   const colors = useColors();
@@ -88,7 +88,7 @@ export default function NewMoleScreen() {
         bodyX,
         bodyY,
         bodyZ,
-        firstNoticedDate: firstNoticed.toISOString().split("T")[0],
+        firstNoticedDate: [firstNoticed.getFullYear(), String(firstNoticed.getMonth() + 1).padStart(2, "0"), String(firstNoticed.getDate()).padStart(2, "0")].join("-"),
         latestSizeMm: sizeMm ? parseFloat(sizeMm) : undefined,
         colorNotes: colorNotes || undefined,
         borderNotes: borderNotes || undefined,
@@ -96,12 +96,10 @@ export default function NewMoleScreen() {
         symptomFlags: symptoms,
       });
 
-      const score = calculateConcernScore(newMole);
       await addUpdateLog(newMole.id, {
         timestamp: new Date().toISOString(),
         sizeMm: sizeMm ? parseFloat(sizeMm) : undefined,
         note: notes || "Mole added",
-        aiScoreSnapshot: score,
       });
 
       router.replace(`/mole/${newMole.id}` as any);

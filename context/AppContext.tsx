@@ -137,10 +137,6 @@ function generateId(): string {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 }
 
-const DEMO_PROFILE_ID = "demo-profile-1";
-const DEMO_MOLE_1_ID = "demo-mole-1";
-const DEMO_MOLE_2_ID = "demo-mole-2";
-
 const DEFAULT_ACCOUNT: Account = {
   onboardingComplete: false,
   disclaimerAccepted: false,
@@ -179,124 +175,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         bodyZ: m.bodyZ ?? 0,
       }));
 
-      if (!accountStr) {
-        const demoNow = new Date().toISOString();
-        const demoProfiles: Profile[] = [
-          {
-            id: DEMO_PROFILE_ID,
-            name: "Alex",
-            avatar: "person.circle",
-            relationship: "Myself",
-            birthYear: 1988,
-            bodyType: "male",
-            createdAt: demoNow,
-          },
-        ];
-        const demoMoles: Mole[] = [
-          {
-            id: DEMO_MOLE_1_ID,
-            profileId: DEMO_PROFILE_ID,
-            defaultName: "Left shoulder mole 01",
-            customName: "Shoulder spot",
-            bodyView: "back",
-            bodyRegion: "left_shoulder",
-            bodyX: 0.45,
-            bodyY: 0.38,
-            bodyZ: 0,
-            firstNoticedDate: "2023-06-15",
-            latestSizeMm: 4,
-            colorNotes: "Light brown, uniform",
-            borderNotes: "Well-defined, smooth edges",
-            shapeNotes: "Round, regular",
-            symptomFlags: ["none"],
-            aiConcernScore: 1,
-            abcdeSummary: {
-              asymmetry: "Symmetrical",
-              border: "Regular, well-defined border",
-              color: "Uniform light brown",
-              diameter: "~4mm, within normal range",
-              evolution: "No change observed",
-            },
-            photos: [],
-            updateLog: [
-              {
-                id: "log-1",
-                moleId: DEMO_MOLE_1_ID,
-                timestamp: "2023-06-15T10:00:00.000Z",
-                sizeMm: 4,
-                note: "First noticed, no symptoms",
-                aiScoreSnapshot: 1,
-              },
-            ],
-            reminderDays: 90,
-            createdAt: "2023-06-15T10:00:00.000Z",
-            updatedAt: "2023-06-15T10:00:00.000Z",
-          },
-          {
-            id: DEMO_MOLE_2_ID,
-            profileId: DEMO_PROFILE_ID,
-            defaultName: "Left forearm mole 01",
-            bodyView: "front",
-            bodyRegion: "left_forearm",
-            bodyX: 0.52,
-            bodyY: 0.40,
-            bodyZ: 0,
-            firstNoticedDate: "2024-01-10",
-            latestSizeMm: 6,
-            colorNotes: "Mixed brown tones",
-            borderNotes: "Slightly irregular",
-            shapeNotes: "Oval",
-            symptomFlags: ["itching"],
-            aiConcernScore: 3,
-            abcdeSummary: {
-              asymmetry: "Slight asymmetry noted",
-              border: "Mildly irregular on one side",
-              color: "Mixed brown shades",
-              diameter: "~6mm, pencil eraser size",
-              evolution: "Itching started recently",
-            },
-            photos: [],
-            updateLog: [
-              {
-                id: "log-2",
-                moleId: DEMO_MOLE_2_ID,
-                timestamp: "2024-01-10T14:30:00.000Z",
-                sizeMm: 5,
-                note: "First noticed",
-                aiScoreSnapshot: 2,
-              },
-              {
-                id: "log-3",
-                moleId: DEMO_MOLE_2_ID,
-                timestamp: "2024-06-01T09:00:00.000Z",
-                sizeMm: 6,
-                symptomChanges: ["itching"],
-                note: "Slight growth, started itching",
-                aiScoreSnapshot: 3,
-              },
-            ],
-            reminderDays: 30,
-            createdAt: "2024-01-10T14:30:00.000Z",
-            updatedAt: "2024-06-01T09:00:00.000Z",
-          },
-        ];
-
-        setState({
-          account: DEFAULT_ACCOUNT,
-          profiles: demoProfiles,
-          moles: demoMoles,
-          activeProfileId: DEMO_PROFILE_ID,
-          isLoading: false,
-        });
-      } else {
-        setState({
-          account,
-          profiles,
-          moles,
-          activeProfileId: account.activeProfileId || profiles[0]?.id || null,
-          isLoading: false,
-        });
-      }
+      setState({
+        account,
+        profiles,
+        moles,
+        activeProfileId: account.activeProfileId || profiles[0]?.id || null,
+        isLoading: false,
+      });
     } catch (e) {
       setState((prev) => ({ ...prev, isLoading: false }));
     }
