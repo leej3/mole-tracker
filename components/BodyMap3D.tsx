@@ -16,13 +16,18 @@ import {
 
 export type { BodyMap3DHandle, BodyMap3DProps, PinPlacedEvent };
 
+// The library's union native props collapse to `never` under the web TypeScript
+// resolver, though Metro only uses this file for native platforms.
+const NativeWebView = WebView as any;
+type NativeWebViewRef = { injectJavaScript(script: string): void };
+
 export const BodyMap3D = forwardRef<BodyMap3DHandle, BodyMap3DProps>(
   function BodyMap3D(
     { moles, onPinPlaced, onMoleTapped, onBodyPartSelected, onGoBack, onViewChanged, interactive = true, gender = "male", width, height },
     ref
   ) {
     const colors = useColors();
-    const webViewRef = useRef<WebView>(null);
+    const webViewRef = useRef<NativeWebViewRef | null>(null);
 
     const html = buildHtml(
       moles,
@@ -74,7 +79,7 @@ export const BodyMap3D = forwardRef<BodyMap3DHandle, BodyMap3DProps>(
           },
         ]}
       >
-        <WebView
+        <NativeWebView
           ref={webViewRef}
           source={{ html }}
           style={{ width, height, backgroundColor: "transparent" }}

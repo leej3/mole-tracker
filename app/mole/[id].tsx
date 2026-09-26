@@ -1,5 +1,4 @@
 import { Feather } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -17,6 +16,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SymptomFlag, useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { pickPhoto as selectPhoto } from "@/lib/photo-picker";
+import { getPhotoInputBehavior } from "@/lib/photo-input";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ScoreBar } from "@/components/ui/ScoreBar";
@@ -64,21 +65,16 @@ export default function MoleDetailScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const pickPhoto = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission needed", "Please allow access to your photo library.");
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-    });
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      await addMolePhoto(mole.id, {
-        localUri: asset.uri,
-        capturedAt: new Date().toISOString(),
-      });
+    try {
+      const uri = await selectPhoto();
+      if (uri) {
+        await addMolePhoto(mole.id, {
+          localUri: uri,
+          capturedAt: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      Alert.alert("Photo unavailable", error instanceof Error ? error.message : "Could not open a photo.");
     }
   };
 
@@ -351,7 +347,12 @@ function PhotosTab({
 
   return (
     <View style={styles.tabContent}>
-      <Button title="Add Photo from Library" onPress={onPickPhoto} variant="secondary" fullWidth />
+      <Button title={Platform.OS === "web" ? "Take or Add Photo" : "Add Photo from Library"} onPress={onPickPhoto} variant="secondary" fullWidth />
+      {Platform.OS === "web" && (
+        <Text style={[styles.photoHelp, { color: colors.mutedForeground }]}>
+          {getPhotoInputBehavior().helperText}
+        </Text>
+      )}
 
       {comparing && (
         <Card>
@@ -651,6 +652,7 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 14 },
   scrollContent: { padding: 16, gap: 16 },
   tabContent: { gap: 16 },
+  photoHelp: { fontSize: 12, lineHeight: 18, marginTop: -8 },
   cardLabel: { fontSize: 12, fontFamily: "Inter_500Medium", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 },
   highScoreBox: { flexDirection: "row", gap: 8, padding: 10, borderRadius: 10, marginTop: 10, alignItems: "flex-start" },
   highScoreText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },

@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { Card } from "@/components/ui/Card";
+import { BackupControls } from "@/components/BackupControls";
 
 export default function SettingsScreen() {
   const colors = useColors();
@@ -110,17 +111,22 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="hard-drive"
             label="Data Storage"
-            sublabel="All data is stored locally on your device"
+            sublabel={Platform.OS === "web" ? "Data is stored in this browser on this device" : "All data is stored locally on your device"}
             colors={colors}
           />
           <SettingsRow
             icon="lock"
             label="Privacy First"
-            sublabel="Photos and health data never leave your device"
+            sublabel={Platform.OS === "web" ? "Photos and health records stay in this browser" : "Photos and health data never leave your device"}
             colors={colors}
             last
           />
         </Card>
+        {Platform.OS === "web" && (
+          <Card style={{ marginTop: 12 }}>
+            <BackupControls />
+          </Card>
+        )}
 
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
           Danger Zone
