@@ -1,266 +1,73 @@
-import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import React from "react";
-import {
-  Alert,
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  Platform,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useApp } from "@/context/AppContext";
-import { useColors } from "@/hooks/useColors";
-import { Card } from "@/components/ui/Card";
-import { BackupControls } from "@/components/BackupControls";
-
-export default function SettingsScreen() {
-  const colors = useColors();
-  const insets = useSafeAreaInsets();
+import { Linking } from "react-native";
+import { useRouter } from "expo-router";
+import { Screen, Panel, Copy } from "@/components/ui/Screen";
+import { Button } from "@/components/ui/Button";
+export default function Help() {
   const router = useRouter();
-  const { profiles, activeProfileId, deleteProfile } = useApp();
-  const activeProfile = profiles.find((p) => p.id === activeProfileId);
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: topPad + 8,
-            backgroundColor: colors.background,
-            borderBottomColor: colors.border,
-          },
-        ]}
-      >
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Feather name="arrow-left" size={22} color={colors.foreground} />
-        </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-          Settings
-        </Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 0) + 80 },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        <Card style={styles.profileCard}>
-          <View style={styles.profileRow}>
-            <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
-              <Feather name="user" size={28} color={colors.primary} />
-            </View>
-            <View>
-              <Text style={[styles.profileName, { color: colors.foreground }]}>
-                {activeProfile?.name || "No profile"}
-              </Text>
-              <Text style={[styles.profileSub, { color: colors.mutedForeground }]}>
-                {activeProfile?.relationship} · Body Type {activeProfile?.bodyType === "male" ? "A" : "B"}
-              </Text>
-            </View>
-          </View>
-          <Pressable
-            onPress={() => router.push("/profiles" as any)}
-            style={[styles.manageBtn, { backgroundColor: colors.primary }]}
-          >
-            <Text style={styles.manageBtnText}>Manage Profiles</Text>
-          </Pressable>
-        </Card>
-
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-          About
-        </Text>
-        <Card>
-          <Text style={{ color: colors.foreground, lineHeight: 22 }}>
-            Mole Tracker keeps a personal skin history; it does not diagnose skin conditions.
-            If a spot is new, changing, itching, or bleeding, seek advice from a qualified clinician.
-          </Text>
-          <SettingsRow icon="external-link" label="Skin self-exam guide (AAD)"
-            onPress={() => Linking.openURL("https://www.aad.org/public/diseases/skin-cancer/check-skin")}
-            colors={colors} last />
-        </Card>
-
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-          Privacy & Data
-        </Text>
-        <Card>
-          <SettingsRow
-            icon="hard-drive"
-            label="Data Storage"
-            sublabel={Platform.OS === "web" ? "Data is stored in this browser on this device" : "All data is stored locally on your device"}
-            colors={colors}
-          />
-          <SettingsRow
-            icon="lock"
-            label="Privacy First"
-            sublabel={Platform.OS === "web" ? "No automatic photo uploads. Browser storage and backups are not encrypted." : "Photos and health data never leave your device"}
-            colors={colors}
-            last
-          />
-        </Card>
-        {Platform.OS === "web" && (
-          <Card style={{ marginTop: 12 }}>
-            <BackupControls />
-          </Card>
-        )}
-
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-          Danger Zone
-        </Text>
-        <Card>
-          <SettingsRow
-            icon="trash-2"
-            label="Delete Active Profile"
-            danger
-            onPress={() => {
-              if (!activeProfile) return;
-              if (profiles.length <= 1) {
-                Alert.alert("Cannot Delete", "You must have at least one profile.");
-                return;
-              }
-              Alert.alert(
-                "Delete Profile",
-                `This will permanently delete ${activeProfile.name} and all their mole data. This cannot be undone.`,
-                [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: () => {
-                      deleteProfile(activeProfile.id);
-                      router.back();
-                    },
-                  },
-                ]
-              );
-            }}
-            colors={colors}
-            last
-          />
-        </Card>
-
-        <View style={[styles.disclaimerCard, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
-          <Feather name="heart" size={16} color={colors.primary} />
-          <Text style={[styles.disclaimerText, { color: colors.primary }]}>
-            If you're concerned about a mole, please consult a qualified dermatologist or your doctor. Early detection matters — Mole Tracker is here to help you organize and document, not diagnose.
-          </Text>
-        </View>
-      </ScrollView>
-    </View>
+    <Screen
+      title="Help & your data"
+      subtitle="A few practical things to keep your history useful."
+    >
+      <Panel title="Photographs worth returning to">
+        <Copy>
+          Use even lighting, a steady camera and a consistent angle and
+          distance. Include a ruler if you want a size reference. Add the date
+          the photograph was taken.
+        </Copy>
+        <Copy>
+          The browser stores a re-encoded JPEG up to 2400 pixels, without the
+          original metadata. Keep your original separately if you need full
+          resolution.
+        </Copy>
+      </Panel>
+      <Panel title="Local, and under your control">
+        <Copy>
+          Records live in this browser on this device. There is no automatic
+          photo upload or analytics. Browser storage and downloaded SQLite
+          backups are not encrypted; use private device storage and keep a
+          backup elsewhere.
+        </Copy>
+        <Button
+          title="Backups & restore"
+          variant="secondary"
+          onPress={() => router.push("/backup")}
+        />
+        <Copy>
+          A changed or compromised app can access its local records. Local
+          storage is not a substitute for keeping the device and application up
+          to date.
+        </Copy>
+      </Panel>
+      <Panel title="When to seek advice">
+        <Copy>
+          Mole Tracker keeps a personal skin history; it does not diagnose skin
+          conditions. If a spot is new, changing, itching, or bleeding, seek
+          advice from a qualified clinician.
+        </Copy>
+        <Button
+          title="Skin self-exam guide · AAD ↗"
+          variant="ghost"
+          onPress={() =>
+            void Linking.openURL(
+              "https://www.aad.org/public/diseases/skin-cancer/check-skin",
+            )
+          }
+        />
+      </Panel>
+      <Panel title="Built for the long view">
+        <Copy>
+          Your complete archive can move with you as a SQLite file. A visit
+          report shares only the records you select. Browser comparison tools
+          align a view without changing the original photographs.
+        </Copy>
+        <Copy>
+          Source licensing is being finalized after the imported source and
+          illustration rights are confirmed. Your records and photographs remain
+          yours.
+        </Copy>
+      </Panel>
+    </Screen>
   );
 }
-
-function SettingsRow({
-  icon,
-  label,
-  sublabel,
-  onPress,
-  danger = false,
-  last = false,
-  colors,
-}: {
-  icon: any;
-  label: string;
-  sublabel?: string;
-  onPress?: () => void;
-  danger?: boolean;
-  last?: boolean;
-  colors: any;
-}) {
-  return (
-    <>
-      <Pressable
-        onPress={onPress}
-        style={[styles.settingsRow, !last && { borderBottomWidth: 1, borderBottomColor: colors.border }]}
-        disabled={!onPress}
-      >
-        <View style={[styles.settingsIcon, { backgroundColor: danger ? "#ffebee" : colors.primaryLight }]}>
-          <Feather
-            name={icon}
-            size={18}
-            color={danger ? colors.destructive : colors.primary}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text
-            style={[
-              styles.settingsLabel,
-              { color: danger ? colors.destructive : colors.foreground },
-            ]}
-          >
-            {label}
-          </Text>
-          {sublabel && (
-            <Text style={[styles.settingsSublabel, { color: colors.mutedForeground }]}>
-              {sublabel}
-            </Text>
-          )}
-        </View>
-        {onPress && (
-          <Feather
-            name="chevron-right"
-            size={16}
-            color={danger ? colors.destructive : colors.mutedForeground}
-          />
-        )}
-      </Pressable>
-    </>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-  },
-  backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 20, fontFamily: "Inter_700Bold" },
-  scrollContent: { padding: 20, gap: 12 },
-  profileCard: { gap: 12 },
-  profileRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  avatar: { width: 54, height: 54, borderRadius: 27, alignItems: "center", justifyContent: "center" },
-  profileName: { fontSize: 18, fontFamily: "Inter_700Bold" },
-  profileSub: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 2, textTransform: "capitalize" },
-  manageBtn: { paddingVertical: 10, borderRadius: 10, alignItems: "center" },
-  manageBtnText: { color: "#fff", fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  sectionLabel: {
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginTop: 8,
-    marginBottom: -4,
-  },
-  settingsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 12,
-  },
-  settingsIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  settingsLabel: { fontSize: 15, fontFamily: "Inter_500Medium" },
-  settingsSublabel: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
-  disclaimerCard: {
-    flexDirection: "row",
-    gap: 10,
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: "flex-start",
-    marginTop: 8,
-  },
-  disclaimerText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19 },
-});

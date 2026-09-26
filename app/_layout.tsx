@@ -1,3 +1,4 @@
+import { StorageGate } from "@/components/StorageStatus";
 import { Feather } from "@expo/vector-icons";
 import {
   Inter_400Regular,
@@ -39,9 +40,18 @@ function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
-      <Stack.Screen name="profiles" options={{ headerShown: false, presentation: "modal" }} />
-      <Stack.Screen name="settings" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen
+        name="onboarding"
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="profiles"
+        options={{ headerShown: false, presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="settings"
+        options={{ headerShown: false, presentation: "modal" }}
+      />
       <Stack.Screen name="mole/new" options={{ headerShown: false }} />
       <Stack.Screen name="mole/[id]" options={{ headerShown: false }} />
     </Stack>
@@ -72,7 +82,9 @@ export default function RootLayout() {
           <AppProvider>
             <GestureHandlerRootView>
               <KeyboardProvider>
-                <RootLayoutNav />
+                <StorageGate>
+                  <RootLayoutNav />
+                </StorageGate>
               </KeyboardProvider>
             </GestureHandlerRootView>
           </AppProvider>

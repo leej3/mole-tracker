@@ -13,6 +13,30 @@ SQLite itself is not a security boundary: application code can read the entire
 history.
 The [design document](DESIGN.md) defines the intended product and release gates.
 
+## Implementation follow-up
+
+The guided-workflow update addresses R2 and R3 with serialized, awaited saves,
+atomic IndexedDB transactions, revision checks across tabs, strict archive
+validation and a staged restore preview.
+R5 now rejects failed image decoding and always re-encodes accepted images.
+The interface now has labeled navigation, a three-step recording flow, dated
+observations, manual affine photo overlays and selected-record visit reports.
+
+Regression tests cover archive round trips including photos, legacy migration,
+invalid imports, aborted writes, concurrent writers, report escaping and affine
+math, alongside the original body-map injection checks.
+TypeScript and the production web build pass.
+Browser checks use synthetic records and photos only.
+
+Remaining work includes the dependency advisories in R7, deployment hardening,
+offline startup, encryption, independent JSON export and native-device testing.
+Manual alignment is temporary and does not infer physical growth.
+Reports currently include the full history of selected records, without a date
+range filter.
+AI classification and automatic registration have not been added.
+The findings below retain the original audit context; evidence line numbers
+refer to that reviewed version.
+
 ## High priority findings
 
 ### R1 — Stored script/markup injection through the body map — fixed paths

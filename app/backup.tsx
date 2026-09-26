@@ -1,20 +1,26 @@
 import React from "react";
-import { Pressable, ScrollView, Text } from "react-native";
-import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Screen, Panel, Copy } from "@/components/ui/Screen";
 import { BackupControls } from "@/components/BackupControls";
-import { useColors } from "@/hooks/useColors";
-
-export default function BackupScreen() {
-  const router = useRouter();
-  const colors = useColors();
-  const insets = useSafeAreaInsets();
-  return <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={{ padding: 24, paddingTop: insets.top + 24, gap: 20, width: "100%", maxWidth: 840, alignSelf: "center" }}>
-    <Pressable accessibilityRole="button" onPress={() => router.replace("/(tabs)")} style={{ minHeight: 44, justifyContent: "center" }}>
-      <Text style={{ color: colors.primary, fontFamily: "Inter_600SemiBold" }}>← All records</Text>
-    </Pressable>
-    <Text style={{ color: colors.foreground, fontFamily: "Inter_700Bold", fontSize: 26 }}>Backups & restore</Text>
-    <Text style={{ color: colors.mutedForeground, lineHeight: 22 }}>A backup is your portable copy of this history. Store it in a private location you control. The SQLite file is not encrypted and contains every profile, note, and photo.</Text>
-    <BackupControls />
-  </ScrollView>;
+export default function Backups() {
+  return (
+    <Screen
+      title="Your history, beyond this browser"
+      subtitle="Download a portable backup, move to another device, or inspect an older copy before restoring."
+    >
+      <Panel>
+        <BackupControls />
+      </Panel>
+      <Panel title="A simple backup habit">
+        <Copy>
+          Make a backup after adding important photos or observations. Keep a
+          dated copy in private storage you control. Before changing devices,
+          test restoring a copy in another browser.
+        </Copy>
+        <Copy>
+          A backup is the complete archive. For a medical visit, use Visit
+          report to select only the records you want to share.
+        </Copy>
+      </Panel>
+    </Screen>
+  );
 }

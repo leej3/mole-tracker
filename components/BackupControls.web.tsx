@@ -1,84 +1,175 @@
+import { useApp } from "@/context/AppContext";
 import React, { useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { exportDatabase, importDatabase } from "@/lib/storage.web";
+import { Text, View } from "react-native";
+import {
+  exportDatabase,
+  importDatabase,
+  inspectDatabase,
+} from "@/lib/storage.web";
+import { readBytes } from "@/lib/browser-store";
+import { MAX_BACKUP_BYTES } from "@/lib/validation";
+import { Archive } from "@/lib/model";
 import { useColors } from "@/hooks/useColors";
-
+import { Button } from "./ui/Button";
 export function BackupControls() {
+  const { isSaving } = useApp();
   const colors = useColors();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const input = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
-
-  const downloadBackup = async () => {
+  const [preview, setPreview] = useState<{
+    bytes: Uint8Array;
+    data: Archive;
+    revision: number;
+    name: string;
+  } | null>(null);
+  const download = async () => {
     setBusy(true);
-    setStatus("");
     try {
       const bytes = await exportDatabase();
-      const backup = new Uint8Array(bytes.byteLength);
-      backup.set(bytes);
-      const blob = new Blob([backup.buffer], { type: "application/vnd.sqlite3" });
+      const blob = new Blob([new Uint8Array(bytes).buffer], {
+        type: "application/vnd.sqlite3",
+      });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `mole-tracker-backup-${new Date().toISOString().slice(0, 10)}.sqlite`;
+      link.download = `mole-tracker-${new Date().toISOString().slice(0, 10)}.sqlite`;
       link.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setStatus("Backup downloaded. Keep it somewhere safe.");
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setStatus(
+        "Backup prepared. Check your downloads and store it somewhere private.",
+      );
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not download the backup.");
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : "Backup could not be prepared.",
+      );
     } finally {
       setBusy(false);
     }
   };
-
-  const restoreBackup = async (file?: File) => {
+  const inspect = async (file?: File) => {
     if (!file) return;
-    if (!window.confirm("Restore this backup? It will replace the data in this browser.")) return;
     setBusy(true);
+    setPreview(null);
     setStatus("");
     try {
-      await importDatabase(new Uint8Array(await file.arrayBuffer()));
-      window.location.reload();
+      if (file.size > MAX_BACKUP_BYTES)
+        throw new Error("Choose a backup smaller than 100 MB.");
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const data = await inspectDatabase(bytes);
+      const { revision } = await readBytes();
+      setPreview({ bytes, data, revision, name: file.name });
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not restore this backup.");
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : "This backup could not be read.",
+      );
+    } finally {
       setBusy(false);
-      if (inputRef.current) inputRef.current.value = "";
+      if (input.current) input.current.value = "";
     }
   };
-
+  const restore = async () => {
+    if (!preview) return;
+    setBusy(true);
+    try {
+      await importDatabase(preview.bytes, preview.revision);
+      window.location.assign("/");
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : "Restore failed. Your current history is unchanged.",
+      );
+      setBusy(false);
+    }
+  };
   return (
-    <View style={[styles.container, { borderTopColor: colors.border }] }>
-      <Text style={[styles.title, { color: colors.foreground }]}>Browser backup</Text>
-      <Text style={[styles.description, { color: colors.mutedForeground }]}>Download an unencrypted SQLite file containing all profiles, records, and photos. Save a current backup before restoring; restore replaces this browser’s records.</Text>
-      <View style={styles.actions}>
-        <Pressable disabled={busy} onPress={downloadBackup} style={[styles.button, { backgroundColor: colors.primary, opacity: busy ? 0.6 : 1 }]}>
-          <Text style={styles.primaryLabel}>{busy ? "Please wait…" : "Download backup"}</Text>
-        </Pressable>
-        <Pressable disabled={busy} onPress={() => inputRef.current?.click()} style={[styles.button, styles.secondary, { borderColor: colors.border, opacity: busy ? 0.6 : 1 }]}>
-          <Text style={[styles.secondaryLabel, { color: colors.foreground }]}>Restore backup</Text>
-        </Pressable>
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".sqlite,.db,application/vnd.sqlite3,application/octet-stream"
-          aria-label="Choose a Mole Tracker SQLite backup"
-          style={{ display: "none" }}
-          onChange={(event) => void restoreBackup(event.currentTarget.files?.[0])}
+    <View style={{ gap: 16 }}>
+      <Text
+        style={{
+          fontSize: 18,
+          fontFamily: "Inter_600SemiBold",
+          color: colors.foreground,
+        }}
+      >
+        A copy you control
+      </Text>
+      <Text style={{ color: colors.mutedForeground, lineHeight: 22 }}>
+        SQLite backups include every profile, observation and photo. Files are
+        unencrypted. Keep a copy outside this browser.
+      </Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+        <Button
+          title="Download current backup"
+          onPress={() => void download()}
+          disabled={busy || isSaving}
+        />
+        <Button
+          title="Inspect a backup"
+          variant="secondary"
+          onPress={() => input.current?.click()}
+          disabled={busy || isSaving}
         />
       </View>
-      {status ? <Text role="status" style={[styles.status, { color: colors.mutedForeground }]}>{status}</Text> : null}
+      <input
+        ref={input}
+        type="file"
+        accept=".sqlite,.db"
+        aria-label="Choose backup"
+        style={{ display: "none" }}
+        onChange={(e) => void inspect(e.currentTarget.files?.[0])}
+      />
+      {preview && (
+        <View
+          style={{
+            padding: 20,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            gap: 12,
+          }}
+        >
+          <Text style={{ fontWeight: "700", color: colors.foreground }}>
+            Ready to restore: {preview.name}
+          </Text>
+          <Text style={{ color: colors.foreground }}>
+            {preview.data.profiles.length} profiles ·{" "}
+            {preview.data.moles.length} spots ·{" "}
+            {preview.data.moles.reduce((n, m) => n + m.photos.length, 0)} photos
+          </Text>
+          <Text style={{ color: colors.mutedForeground }}>
+            This replaces all records in this browser. Download your current
+            backup above before continuing. Nothing changes until you choose
+            Replace.
+          </Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+            <Button
+              title="Replace with this backup"
+              variant="danger"
+              onPress={() => void restore()}
+              disabled={busy || isSaving}
+            />
+            <Button
+              title="Cancel"
+              variant="ghost"
+              onPress={() => setPreview(null)}
+              disabled={busy || isSaving}
+            />
+          </View>
+        </View>
+      )}
+      {status ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={{ color: colors.foreground, lineHeight: 22 }}
+        >
+          {status}
+        </Text>
+      ) : null}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { paddingTop: 16, marginTop: 8, borderTopWidth: StyleSheet.hairlineWidth, gap: 8 },
-  title: { fontFamily: "Inter_600SemiBold", fontSize: 15 },
-  description: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19 },
-  actions: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
-  button: { borderRadius: 8, paddingVertical: 10, paddingHorizontal: 13 },
-  primaryLabel: { color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 13 },
-  secondary: { borderWidth: 1, backgroundColor: "transparent" },
-  secondaryLabel: { fontFamily: "Inter_600SemiBold", fontSize: 13 },
-  status: { fontFamily: "Inter_400Regular", fontSize: 12 },
-});

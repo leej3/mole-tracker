@@ -1,42 +1,50 @@
 import { getPhotoInputBehavior } from "@/lib/photo-input";
-
-function readAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Could not read the selected image."));
-    reader.onerror = () => reject(reader.error ?? new Error("Could not read the selected image."));
-    reader.readAsDataURL(file);
-  });
-}
-
 async function compactImage(file: File): Promise<string> {
+  if (file.size > 20 * 1024 * 1024)
+    throw new Error("Choose a photo smaller than 20 MB.");
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type))
+    throw new Error("Choose a JPEG, PNG or WebP photo.");
+  let bitmap: ImageBitmap;
   try {
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Image resizing is unavailable.");
-    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close();
-    return canvas.toDataURL("image/jpeg", 0.82);
+    bitmap = await createImageBitmap(file);
   } catch {
-    return readAsDataUrl(file);
+    throw new Error(
+      "This photo could not be decoded. Try exporting it as JPEG first.",
+    );
+  }
+  try {
+    if (bitmap.width * bitmap.height > 40_000_000)
+      throw new Error("Choose a photo with fewer than 40 megapixels.");
+    const scale = Math.min(1, 2400 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const context = canvas.getContext("2d");
+    if (!context)
+      throw new Error("Photo processing is unavailable in this browser.");
+    context.fillStyle = "#fff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const result = canvas.toDataURL("image/jpeg", 0.92);
+    if (!result.startsWith("data:image/jpeg;base64,"))
+      throw new Error("Photo processing failed. The original was not stored.");
+    return result;
+  } finally {
+    bitmap.close();
   }
 }
-
 export async function pickPhoto(): Promise<string | null> {
-  const behavior = getPhotoInputBehavior();
   return new Promise((resolve, reject) => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = "image/*";
-    if (behavior.capture) input.setAttribute("capture", behavior.capture);
+    input.accept = "image/jpeg,image/png,image/webp";
+    if (getPhotoInputBehavior().capture)
+      input.setAttribute("capture", "environment");
+    input.oncancel = () => resolve(null);
     input.onchange = () => {
       const file = input.files?.[0];
-      if (!file) return resolve(null);
-      void compactImage(file).then(resolve, reject);
+      if (!file) resolve(null);
+      else void compactImage(file).then(resolve, reject);
     };
     input.click();
   });

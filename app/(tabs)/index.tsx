@@ -1,95 +1,293 @@
+import React, { useState } from "react";
+import {
+  Image,
+  Pressable,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { BodyMap3D, PinPlacedEvent } from "@/components/BodyMap3D";
-import { MoleCard } from "@/components/MoleCard";
-
-export default function HomeScreen() {
-  const colors = useColors();
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const { width, height } = useWindowDimensions();
-  const { profiles, moles, activeProfileId } = useApp();
-  const [view, setView] = useState<"records" | "map">("records");
-  const activeProfile = profiles.find((profile) => profile.id === activeProfileId);
-  const records = useMemo(() => moles.filter((mole) => mole.profileId === activeProfileId)
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [moles, activeProfileId]);
-
-  const addAtLocation = (event: PinPlacedEvent) => router.push({
-    pathname: "/mole/new",
-    params: { x: String(event.x), y: String(event.y), z: String(event.z),
-      region: event.bodyPart, view: event.view, profileId: activeProfileId || "" },
-  });
-
-  const action = (label: string, icon: React.ComponentProps<typeof Feather>["name"], onPress: () => void) => (
-    <Pressable accessibilityRole="button" onPress={onPress}
-      style={[styles.action, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-      <Feather name={icon} size={18} color={colors.primary} />
-      <Text style={{ color: colors.foreground, fontFamily: "Inter_500Medium" }}>{label}</Text>
-    </Pressable>
+import { Screen, Panel, Copy, Field, Choice } from "@/components/ui/Screen";
+import { Button } from "@/components/ui/Button";
+import { BodyMap3D } from "@/components/BodyMap3D";
+import { displayDate, regionLabel } from "@/lib/locations";
+export default function Home() {
+  const { profiles, moles, activeProfileId, setDraftLocation } = useApp();
+  const colors = useColors(),
+    router = useRouter();
+  const { width } = useWindowDimensions();
+  const [mode, setMode] = useState("records"),
+    [query, setQuery] = useState("");
+  const profile = profiles.find((p) => p.id === activeProfileId);
+  const records = moles
+    .filter((m) => m.profileId === activeProfileId)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const visible = records.filter((m) =>
+    `${m.customName || m.defaultName} ${regionLabel(m.bodyRegion)}`
+      .toLowerCase()
+      .includes(query.toLowerCase()),
   );
-
+  const photos = records.reduce((n, m) => n + m.photos.length, 0);
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={[styles.page, { paddingTop: (Platform.OS === "web" ? 20 : insets.top + 16), paddingBottom: insets.bottom + 80 }]}>
-      <Text style={[styles.eyebrow, { color: colors.mutedForeground }]}>Mole Tracker · stored on this device</Text>
-      <Text style={[styles.title, { color: colors.foreground }]}>{activeProfile?.name || "Your records"}</Text>
-      <Text style={[styles.description, { color: colors.mutedForeground }]}>Keep a photographic history. Open a record to add a photo or note, or mark a new spot on the body map.</Text>
-      <View style={styles.actions}>
-        {action("Profiles", "users", () => router.push("/profiles"))}
-        {action("Backups", "download", () => router.push("/backup"))}
-        {action("Settings & help", "settings", () => router.push("/settings"))}
-      </View>
-      <View style={styles.actions}>
-        {(["records", "map"] as const).map((tab) => (
-          <Pressable key={tab} accessibilityRole="button" accessibilityState={{ selected: view === tab }}
-            onPress={() => setView(tab)} style={[styles.action, { backgroundColor: view === tab ? colors.primary : colors.surface, borderColor: colors.border }]}>
-            <Text style={{ color: view === tab ? "#fff" : colors.foreground, fontFamily: "Inter_600SemiBold" }}>
-              {tab === "records" ? `All records (${records.length})` : "Body map / add spot"}
+    <Screen
+      title="Your skin history"
+      subtitle="Small observations, kept together over time. A private record to return to and share when it matters."
+      back={false}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        <Button
+          title="+ Record a spot"
+          onPress={() => {
+            setDraftLocation(null);
+            router.push("/mole/new");
+          }}
+        />
+        {(
+          [
+            ["Profiles", "users", "/profiles"],
+            ["Backups", "download", "/backup"],
+            ["Visit report", "file-text", "/report"],
+            ["Help", "help-circle", "/settings"],
+          ] as const
+        ).map(([label, icon, path]) => (
+          <Pressable
+            key={label}
+            accessibilityRole="link"
+            onPress={() => router.push(path)}
+            style={{
+              flexDirection: "row",
+              gap: 8,
+              padding: 12,
+              minHeight: 44,
+              alignItems: "center",
+            }}
+          >
+            <Feather name={icon} size={17} color={colors.primary} />
+            <Text
+              style={{
+                fontFamily: "Inter_500Medium",
+                color: colors.foreground,
+              }}
+            >
+              {label}
             </Text>
           </Pressable>
         ))}
       </View>
-      {view === "map" ? (
-        <View style={styles.section}>
-          <Text style={[styles.heading, { color: colors.foreground }]}>Add a spot in two steps</Text>
-          <Text style={[styles.description, { color: colors.mutedForeground }]}>1. Choose Front or Back and select a body region. 2. Tap its location to open a new record. Select an existing pin to open its history.</Text>
-          <BodyMap3D key={activeProfileId} moles={records} interactive gender={activeProfile?.bodyType ?? "male"}
-            width={Math.max(240, Math.min(width - 40, 800))} height={Math.min(height * 0.65, 580)}
-            onPinPlaced={addAtLocation} onMoleTapped={(id) => router.push(`/mole/${id}`)} />
-          {action("Return to all records", "list", () => setView("records"))}
-        </View>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+        {[
+          ["PROFILE", profile?.name || "Your profile"],
+          ["SPOTS RECORDED", String(records.length)],
+          ["PHOTOGRAPHS", String(photos)],
+        ].map(([label, value]) => (
+          <View
+            key={label}
+            style={{
+              flex: 1,
+              minWidth: 140,
+              padding: 20,
+              borderRadius: 16,
+              backgroundColor: colors.primaryLight,
+              gap: 10,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 10,
+                letterSpacing: 1.3,
+                fontFamily: "Inter_600SemiBold",
+                color: colors.primary,
+              }}
+            >
+              {label}
+            </Text>
+            <Text
+              style={{
+                fontSize: 24,
+                fontFamily: "Inter_600SemiBold",
+                color: colors.foreground,
+              }}
+            >
+              {value}
+            </Text>
+          </View>
+        ))}
+      </View>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <Choice
+          label="All records"
+          selected={mode === "records"}
+          onPress={() => setMode("records")}
+        />
+        <Choice
+          label="Body map"
+          selected={mode === "map"}
+          onPress={() => setMode("map")}
+        />
+      </View>
+      {mode === "map" ? (
+        <Panel title="Find it on the map">
+          <Copy>
+            Choose front or back, select a region, then tap a position. Prefer
+            words? “Record a spot” also offers a location list.
+          </Copy>
+          <BodyMap3D
+            key={activeProfileId}
+            moles={records}
+            width={Math.max(240, Math.min(width - 94, 944))}
+            height={480}
+            onPinPlaced={(event) => {
+              setDraftLocation({
+                x: event.x,
+                y: event.y,
+                region: event.bodyPart,
+                view: event.view,
+              });
+              router.push("/mole/new");
+            }}
+            onMoleTapped={(id) => router.push(`/mole/${id}`)}
+          />
+        </Panel>
       ) : (
-        <View style={styles.section}>
-          <Text style={[styles.heading, { color: colors.foreground }]}>Your history</Text>
-          <Text style={[styles.description, { color: colors.mutedForeground }]}>All body locations, most recently updated first.</Text>
-          {records.length ? records.map((mole) => <MoleCard key={mole.id} mole={mole} />) : (
-            <View style={[styles.empty, { borderColor: colors.border }]}>
-              <Text style={[styles.heading, { color: colors.foreground }]}>Start with one spot</Text>
-              <Text style={[styles.description, { color: colors.mutedForeground }]}>Choose its location, give it a recognizable name, then add a photo. You can add measurements and observations later.</Text>
-              {action("Add your first spot", "plus", () => setView("map"))}
-            </View>
+        <>
+          {records.length > 0 && (
+            <Field
+              label="Find a record"
+              placeholder="Search by name or body location"
+              value={query}
+              onChangeText={setQuery}
+            />
           )}
-          {records.length > 0 && action("Add another spot", "plus", () => setView("map"))}
-        </View>
+          {!records.length ? (
+            <Panel title="Begin with one spot">
+              <View
+                style={{
+                  flexDirection: width > 600 ? "row" : "column",
+                  gap: 24,
+                  alignItems: "center",
+                }}
+              >
+                <View
+                  style={{
+                    width: 100,
+                    height: 100,
+                    borderRadius: 50,
+                    backgroundColor: colors.primaryLight,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Feather name="camera" size={36} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1, gap: 12 }}>
+                  <Copy>
+                    Give it a name you’ll recognize, add its location, and take
+                    a photo. That first record becomes a reference for next
+                    time.
+                  </Copy>
+                  <Button
+                    title="Create your first record"
+                    onPress={() => router.push("/mole/new")}
+                  />
+                </View>
+              </View>
+            </Panel>
+          ) : !visible.length ? (
+            <Panel title="No matching records">
+              <Copy>Try another name or location.</Copy>
+              <Button
+                title="Clear search"
+                variant="ghost"
+                onPress={() => setQuery("")}
+              />
+            </Panel>
+          ) : (
+            visible.map((m) => (
+              <Pressable
+                key={m.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${m.customName || m.defaultName}`}
+                onPress={() => router.push(`/mole/${m.id}`)}
+                style={({ pressed }) => ({
+                  padding: 18,
+                  borderRadius: 18,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  backgroundColor: colors.card,
+                  flexDirection: "row",
+                  gap: 18,
+                  alignItems: "center",
+                  opacity: pressed ? 0.8 : 1,
+                })}
+              >
+                {m.photos.length ? (
+                  <Image
+                    source={{ uri: m.photos[m.photos.length - 1].localUri }}
+                    style={{ width: 72, height: 72, borderRadius: 12 }}
+                  />
+                ) : (
+                  <View
+                    style={{
+                      width: 72,
+                      height: 72,
+                      borderRadius: 12,
+                      backgroundColor: colors.secondary,
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Feather name="map-pin" size={24} color={colors.primary} />
+                  </View>
+                )}
+                <View style={{ flex: 1, gap: 5 }}>
+                  <Text
+                    style={{
+                      fontFamily: "Inter_600SemiBold",
+                      fontSize: 17,
+                      color: colors.foreground,
+                    }}
+                  >
+                    {m.customName || m.defaultName}
+                  </Text>
+                  <Copy>
+                    {regionLabel(m.bodyRegion)} · {m.bodyView}
+                  </Copy>
+                  <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                    {m.photos.length} photos · Updated{" "}
+                    {displayDate(m.updatedAt)}
+                  </Text>
+                </View>
+                <Feather
+                  name="chevron-right"
+                  size={20}
+                  color={colors.primary}
+                />
+              </Pressable>
+            ))
+          )}
+        </>
       )}
-      <Text style={[styles.description, { color: colors.mutedForeground }]}>Keep a backup outside this browser. Clearing site data can erase this history.</Text>
-    </ScrollView>
+      <Panel title="Keep this history yours">
+        <Copy>
+          Your records are saved in this browser. A downloaded backup lets you
+          move devices or recover after clearing browser data.
+        </Copy>
+        <Button
+          title="Make a backup"
+          variant="ghost"
+          onPress={() => router.push("/backup")}
+        />
+      </Panel>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  page: { width: "100%", maxWidth: 840, alignSelf: "center", paddingHorizontal: 20, gap: 16 },
-  eyebrow: { fontFamily: "Inter_500Medium", fontSize: 13 },
-  title: { fontFamily: "Inter_700Bold", fontSize: 28 },
-  heading: { fontFamily: "Inter_600SemiBold", fontSize: 18 },
-  description: { fontFamily: "Inter_400Regular", fontSize: 14, lineHeight: 22 },
-  actions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  action: { minHeight: 44, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderRadius: 10, flexDirection: "row", gap: 8, alignItems: "center", alignSelf: "flex-start" },
-  section: { gap: 14 },
-  empty: { borderWidth: 1, borderRadius: 12, padding: 20, gap: 14 },
-});

@@ -1,444 +1,284 @@
-import AsyncStorage from "@/lib/storage";
 import React, {
   createContext,
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
-
-export type BodyType = "male" | "female";
-export type BodyView = "front" | "back" | "left" | "right";
-export type SymptomFlag =
-  | "itching"
-  | "bleeding"
-  | "pain"
-  | "crusting"
-  | "rapid_growth"
-  | "color_darkening"
-  | "irregular_border"
-  | "raised"
-  | "none";
-
-export interface Profile {
-  id: string;
-  name: string;
-  avatar: string;
-  relationship?: string;
-  birthYear?: number;
-  bodyType: BodyType;
-  createdAt: string;
+import { readSnapshot, saveSnapshot } from "@/lib/storage";
+import {
+  Archive,
+  BodyType,
+  Mole,
+  MolePhoto,
+  MoleUpdateLog,
+  Profile,
+  emptyArchive,
+  Snapshot,
+} from "@/lib/model";
+export type {
+  Account,
+  BodyType,
+  BodyView,
+  SymptomFlag,
+  Profile,
+  Mole,
+  MolePhoto,
+  MoleUpdateLog,
+  ABCDESnapshot,
+} from "@/lib/model";
+type NewMole = Omit<
+  Mole,
+  "id" | "createdAt" | "updatedAt" | "photos" | "updateLog"
+>;
+type NewProfile = Omit<Profile, "id" | "createdAt">;
+export interface LocationDraft {
+  x: number;
+  y: number;
+  region: string;
+  view: "front" | "back";
 }
-
-export interface ABCDESnapshot {
-  asymmetry?: string;
-  border?: string;
-  color?: string;
-  diameter?: string;
-  evolution?: string;
-}
-
-export interface MolePhoto {
-  id: string;
-  moleId: string;
-  localUri: string;
-  capturedAt: string;
-  notes?: string;
-  angleTag?: string;
-}
-
-export interface MoleUpdateLog {
-  id: string;
-  moleId: string;
-  timestamp: string;
-  sizeMm?: number;
-  symptomChanges?: SymptomFlag[];
-  note?: string;
-  abcdeSnapshot?: ABCDESnapshot;
-  aiScoreSnapshot?: number;
-}
-
-export interface Mole {
-  id: string;
-  profileId: string;
-  defaultName: string;
-  customName?: string;
-  bodyView: BodyView;
-  bodyRegion: string;
-  bodyX: number;
-  bodyY: number;
-  bodyZ: number;
-  firstNoticedDate: string;
-  latestSizeMm?: number;
-  sizeEstimateNote?: string;
-  colorNotes?: string;
-  borderNotes?: string;
-  shapeNotes?: string;
-  symptomFlags: SymptomFlag[];
-  reminderDays?: number;
-  aiConcernScore?: number;
-  abcdeSummary?: ABCDESnapshot;
-  photos: MolePhoto[];
-  updateLog: MoleUpdateLog[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Account {
-  onboardingComplete: boolean;
-  disclaimerAccepted: boolean;
-  reminderMonthlyEnabled: boolean;
-  passcodeEnabled: boolean;
-  activeProfileId?: string;
-}
-
-interface AppState {
-  account: Account;
-  profiles: Profile[];
-  moles: Mole[];
+interface AppContextType extends Archive {
   activeProfileId: string | null;
   isLoading: boolean;
-}
-
-interface AppContextType extends AppState {
-  setActiveProfile: (id: string) => void;
-  createProfile: (
-    profile: Omit<Profile, "id" | "createdAt">
-  ) => Promise<Profile>;
+  loadError: string | null;
+  saveError: string | null;
+  isSaving: boolean;
+  reload: () => Promise<void>;
+  clearSaveError: () => void;
+  draftLocation: LocationDraft | null;
+  setDraftLocation: (value: LocationDraft | null) => void;
+  setActiveProfile: (id: string) => Promise<void>;
+  createProfile: (profile: NewProfile) => Promise<Profile>;
+  startProfile: (profile: NewProfile) => Promise<void>;
   updateProfile: (id: string, updates: Partial<Profile>) => Promise<void>;
   deleteProfile: (id: string) => Promise<void>;
-  createMole: (mole: Omit<Mole, "id" | "createdAt" | "updatedAt" | "photos" | "updateLog">) => Promise<Mole>;
+  createMole: (mole: NewMole, note?: string, photo?: string) => Promise<Mole>;
   updateMole: (id: string, updates: Partial<Mole>) => Promise<void>;
   deleteMole: (id: string) => Promise<void>;
   addMolePhoto: (
-    moleId: string,
-    photo: Omit<MolePhoto, "id" | "moleId">
+    id: string,
+    photo: Omit<MolePhoto, "id" | "moleId">,
   ) => Promise<void>;
-  deleteMolePhoto: (moleId: string, photoId: string) => Promise<void>;
+  deleteMolePhoto: (id: string, photoId: string) => Promise<void>;
   addUpdateLog: (
-    moleId: string,
-    log: Omit<MoleUpdateLog, "id" | "moleId">
+    id: string,
+    log: Omit<MoleUpdateLog, "id" | "moleId">,
   ) => Promise<void>;
   completeOnboarding: (bodyType: BodyType) => Promise<void>;
   acceptDisclaimer: () => Promise<void>;
-  getMolesForProfile: (profileId: string) => Mole[];
+  getMolesForProfile: (id: string) => Mole[];
   getMoleById: (id: string) => Mole | undefined;
 }
-
-const AppContext = createContext<AppContextType | null>(null);
-
-const STORAGE_KEYS = {
-  ACCOUNT: "@mole_tracker/account",
-  PROFILES: "@mole_tracker/profiles",
-  MOLES: "@mole_tracker/moles",
-};
-
-function generateId(): string {
-  return Date.now().toString() + Math.random().toString(36).substr(2, 9);
-}
-
-const DEFAULT_ACCOUNT: Account = {
-  onboardingComplete: false,
-  disclaimerAccepted: false,
-  reminderMonthlyEnabled: true,
-  passcodeEnabled: false,
-};
-
+const Context = createContext<AppContextType | null>(null);
+const uid = () =>
+  globalThis.crypto?.randomUUID?.() ??
+  `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const message = (error: unknown) =>
+  error instanceof Error
+    ? error.message
+    : "The operation could not be completed. Please try again.";
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AppState>({
-    account: DEFAULT_ACCOUNT,
-    profiles: [],
-    moles: [],
-    activeProfileId: null,
-    isLoading: true,
-  });
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const [data, setData] = useState(emptyArchive);
+  const current = useRef<Snapshot | null>(null);
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const pending = useRef(0);
+  const [isLoading, setLoading] = useState(true);
+  const [isSaving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [draftLocation, setDraftLocation] = useState<LocationDraft | null>(
+    null,
+  );
+  const reload = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    await queue.current.catch(() => undefined);
     try {
-      const [accountStr, profilesStr, molesStr] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.ACCOUNT),
-        AsyncStorage.getItem(STORAGE_KEYS.PROFILES),
-        AsyncStorage.getItem(STORAGE_KEYS.MOLES),
-      ]);
-
-      const account: Account = accountStr
-        ? JSON.parse(accountStr)
-        : DEFAULT_ACCOUNT;
-      const profiles: Profile[] = profilesStr ? JSON.parse(profilesStr) : [];
-      const rawMoles: Mole[] = molesStr ? JSON.parse(molesStr) : [];
-      const moles: Mole[] = rawMoles.map((m) => ({
-        ...m,
-        bodyZ: m.bodyZ ?? 0,
-      }));
-
-      setState({
-        account,
-        profiles,
-        moles,
-        activeProfileId: account.activeProfileId || profiles[0]?.id || null,
-        isLoading: false,
-      });
-    } catch (e) {
-      setState((prev) => ({ ...prev, isLoading: false }));
+      const snapshot = await readSnapshot();
+      current.current = snapshot;
+      setData(snapshot.data);
+      setSaveError(null);
+    } catch (error) {
+      current.current = null;
+      setLoadError(message(error));
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const saveAccount = async (account: Account) => {
-    await AsyncStorage.setItem(STORAGE_KEYS.ACCOUNT, JSON.stringify(account));
-  };
-
-  const saveProfiles = async (profiles: Profile[]) => {
-    await AsyncStorage.setItem(
-      STORAGE_KEYS.PROFILES,
-      JSON.stringify(profiles)
-    );
-  };
-
-  const saveMoles = async (moles: Mole[]) => {
-    await AsyncStorage.setItem(STORAGE_KEYS.MOLES, JSON.stringify(moles));
-  };
-
-  const setActiveProfile = useCallback((id: string) => {
-    setState((prev) => {
-      const newAccount = { ...prev.account, activeProfileId: id };
-      saveAccount(newAccount);
-      return { ...prev, account: newAccount, activeProfileId: id };
-    });
   }, []);
-
-  const createProfile = useCallback(
-    async (profile: Omit<Profile, "id" | "createdAt">): Promise<Profile> => {
-      const newProfile: Profile = {
-        ...profile,
-        id: generateId(),
-        createdAt: new Date().toISOString(),
-      };
-      setState((prev) => {
-        const newProfiles = [...prev.profiles, newProfile];
-        saveProfiles(newProfiles);
-        const newAccount = {
-          ...prev.account,
-          activeProfileId: newProfile.id,
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+  const change = useCallback(
+    <T,>(operation: (next: Archive) => T): Promise<T> => {
+      pending.current++;
+      setSaving(true);
+      const result = queue.current
+        .then(async () => {
+          if (!current.current)
+            throw new Error(
+              "History is not available. Reload it before saving.",
+            );
+          const next: Archive = JSON.parse(
+            JSON.stringify(current.current.data),
+          );
+          const value = operation(next);
+          const revision = await saveSnapshot(next, current.current.revision);
+          // Visible state changes only after the complete snapshot is committed.
+          current.current = { data: next, revision };
+          setData(next);
+          setSaveError(null);
+          return value;
+        })
+        .catch((error) => {
+          setSaveError(message(error));
+          throw error;
+        })
+        .finally(() => {
+          pending.current--;
+          setSaving(pending.current > 0);
+        });
+      queue.current = result.catch(() => undefined);
+      return result;
+    },
+    [],
+  );
+  const find = (next: Archive, id: string) => {
+    const mole = next.moles.find((m) => m.id === id);
+    if (!mole) throw new Error("This record no longer exists.");
+    return mole;
+  };
+  const profile = (next: Archive, input: NewProfile) => {
+    const value = {
+      ...input,
+      name: input.name.trim(),
+      id: uid(),
+      createdAt: new Date().toISOString(),
+    };
+    next.profiles.push(value);
+    next.account.activeProfileId = value.id;
+    return value;
+  };
+  const value: AppContextType = {
+    ...data,
+    activeProfileId:
+      data.account.activeProfileId ?? data.profiles[0]?.id ?? null,
+    isLoading,
+    isSaving,
+    loadError,
+    saveError,
+    reload,
+    clearSaveError: () => setSaveError(null),
+    draftLocation,
+    setDraftLocation,
+    setActiveProfile: (id) =>
+      change((next) => {
+        if (!next.profiles.some((p) => p.id === id))
+          throw new Error("Profile no longer exists.");
+        next.account.activeProfileId = id;
+      }),
+    createProfile: (input) => change((next) => profile(next, input)),
+    startProfile: (input) =>
+      change((next) => {
+        profile(next, input);
+        next.account.onboardingComplete = true;
+        next.account.disclaimerAccepted = true;
+      }),
+    updateProfile: (id, updates) =>
+      change((next) => {
+        const p = next.profiles.find((p) => p.id === id);
+        if (!p) throw new Error("Profile no longer exists.");
+        Object.assign(p, updates, { id });
+      }),
+    deleteProfile: (id) =>
+      change((next) => {
+        next.profiles = next.profiles.filter((p) => p.id !== id);
+        next.moles = next.moles.filter((m) => m.profileId !== id);
+        if (next.account.activeProfileId === id)
+          next.account.activeProfileId = next.profiles[0]?.id;
+        if (!next.profiles.length) next.account.onboardingComplete = false;
+      }),
+    createMole: (input, note, photo) =>
+      change((next) => {
+        const id = uid(),
+          now = new Date().toISOString();
+        const mole: Mole = {
+          ...input,
+          id,
+          createdAt: now,
+          updatedAt: now,
+          photos: photo
+            ? [{ id: uid(), moleId: id, localUri: photo, capturedAt: now }]
+            : [],
+          updateLog: [
+            {
+              id: uid(),
+              moleId: id,
+              timestamp: now,
+              note: note || "Record started",
+              sizeMm: input.latestSizeMm,
+              symptomChanges: input.symptomFlags,
+            },
+          ],
         };
-        saveAccount(newAccount);
-        return {
-          ...prev,
-          profiles: newProfiles,
-          activeProfileId: newProfile.id,
-          account: newAccount,
-        };
-      });
-      return newProfile;
-    },
-    []
-  );
-
-  const updateProfile = useCallback(
-    async (id: string, updates: Partial<Profile>) => {
-      setState((prev) => {
-        const newProfiles = prev.profiles.map((p) =>
-          p.id === id ? { ...p, ...updates } : p
+        next.moles.push(mole);
+        return mole;
+      }),
+    updateMole: (id, updates) =>
+      change((next) => {
+        Object.assign(find(next, id), updates, {
+          id,
+          updatedAt: new Date().toISOString(),
+        });
+      }),
+    deleteMole: (id) =>
+      change((next) => {
+        next.moles = next.moles.filter((m) => m.id !== id);
+      }),
+    addMolePhoto: (id, photo) =>
+      change((next) => {
+        const m = find(next, id);
+        m.photos.push({ ...photo, id: uid(), moleId: id });
+        m.updatedAt = new Date().toISOString();
+      }),
+    deleteMolePhoto: (id, photoId) =>
+      change((next) => {
+        const m = find(next, id);
+        m.photos = m.photos.filter((p) => p.id !== photoId);
+        m.updatedAt = new Date().toISOString();
+      }),
+    addUpdateLog: (id, log) =>
+      change((next) => {
+        const m = find(next, id);
+        m.updateLog.push({ ...log, id: uid(), moleId: id });
+        m.updatedAt = new Date().toISOString();
+        const dated = [...m.updateLog].sort(
+          (a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp),
         );
-        saveProfiles(newProfiles);
-        return { ...prev, profiles: newProfiles };
-      });
-    },
-    []
-  );
-
-  const deleteProfile = useCallback(async (id: string) => {
-    setState((prev) => {
-      const newProfiles = prev.profiles.filter((p) => p.id !== id);
-      const newMoles = prev.moles.filter((m) => m.profileId !== id);
-      saveProfiles(newProfiles);
-      saveMoles(newMoles);
-      const newActiveId =
-        prev.activeProfileId === id
-          ? newProfiles[0]?.id || null
-          : prev.activeProfileId;
-      const newAccount = { ...prev.account, activeProfileId: newActiveId ?? undefined };
-      saveAccount(newAccount);
-      return {
-        ...prev,
-        profiles: newProfiles,
-        moles: newMoles,
-        activeProfileId: newActiveId,
-        account: newAccount,
-      };
-    });
-  }, []);
-
-  const createMole = useCallback(
-    async (mole: Omit<Mole, "id" | "createdAt" | "updatedAt" | "photos" | "updateLog">): Promise<Mole> => {
-      const now = new Date().toISOString();
-      const newMole: Mole = {
-        ...mole,
-        id: generateId(),
-        photos: [],
-        updateLog: [],
-        createdAt: now,
-        updatedAt: now,
-      };
-      setState((prev) => {
-        const newMoles = [...prev.moles, newMole];
-        saveMoles(newMoles);
-        return { ...prev, moles: newMoles };
-      });
-      return newMole;
-    },
-    []
-  );
-
-  const updateMole = useCallback(async (id: string, updates: Partial<Mole>) => {
-    setState((prev) => {
-      const newMoles = prev.moles.map((m) =>
-        m.id === id ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m
-      );
-      saveMoles(newMoles);
-      return { ...prev, moles: newMoles };
-    });
-  }, []);
-
-  const deleteMole = useCallback(async (id: string) => {
-    setState((prev) => {
-      const newMoles = prev.moles.filter((m) => m.id !== id);
-      saveMoles(newMoles);
-      return { ...prev, moles: newMoles };
-    });
-  }, []);
-
-  const addMolePhoto = useCallback(
-    async (moleId: string, photo: Omit<MolePhoto, "id" | "moleId">) => {
-      const newPhoto: MolePhoto = {
-        ...photo,
-        id: generateId(),
-        moleId,
-      };
-      setState((prev) => {
-        const newMoles = prev.moles.map((m) =>
-          m.id === moleId
-            ? {
-                ...m,
-                photos: [...m.photos, newPhoto],
-                updatedAt: new Date().toISOString(),
-              }
-            : m
-        );
-        saveMoles(newMoles);
-        return { ...prev, moles: newMoles };
-      });
-    },
-    []
-  );
-
-  const deleteMolePhoto = useCallback(
-    async (moleId: string, photoId: string) => {
-      setState((prev) => {
-        const newMoles = prev.moles.map((m) =>
-          m.id === moleId
-            ? {
-                ...m,
-                photos: m.photos.filter((p) => p.id !== photoId),
-                updatedAt: new Date().toISOString(),
-              }
-            : m
-        );
-        saveMoles(newMoles);
-        return { ...prev, moles: newMoles };
-      });
-    },
-    []
-  );
-
-  const addUpdateLog = useCallback(
-    async (moleId: string, log: Omit<MoleUpdateLog, "id" | "moleId">) => {
-      const newLog: MoleUpdateLog = {
-        ...log,
-        id: generateId(),
-        moleId,
-      };
-      setState((prev) => {
-        const newMoles = prev.moles.map((m) =>
-          m.id === moleId
-            ? {
-                ...m,
-                updateLog: [...m.updateLog, newLog],
-                updatedAt: new Date().toISOString(),
-              }
-            : m
-        );
-        saveMoles(newMoles);
-        return { ...prev, moles: newMoles };
-      });
-    },
-    []
-  );
-
-  const completeOnboarding = useCallback(async (bodyType: BodyType) => {
-    setState((prev) => {
-      const newAccount = {
-        ...prev.account,
-        onboardingComplete: true,
-        disclaimerAccepted: true,
-      };
-      saveAccount(newAccount);
-      return { ...prev, account: newAccount };
-    });
-  }, []);
-
-  const acceptDisclaimer = useCallback(async () => {
-    setState((prev) => {
-      const newAccount = { ...prev.account, disclaimerAccepted: true };
-      saveAccount(newAccount);
-      return { ...prev, account: newAccount };
-    });
-  }, []);
-
-  const getMolesForProfile = useCallback(
-    (profileId: string) => {
-      return state.moles.filter((m) => m.profileId === profileId);
-    },
-    [state.moles]
-  );
-
-  const getMoleById = useCallback(
-    (id: string) => {
-      return state.moles.find((m) => m.id === id);
-    },
-    [state.moles]
-  );
-
-  return (
-    <AppContext.Provider
-      value={{
-        ...state,
-        setActiveProfile,
-        createProfile,
-        updateProfile,
-        deleteProfile,
-        createMole,
-        updateMole,
-        deleteMole,
-        addMolePhoto,
-        deleteMolePhoto,
-        addUpdateLog,
-        completeOnboarding,
-        acceptDisclaimer,
-        getMolesForProfile,
-        getMoleById,
-      }}
-    >
-      {children}
-    </AppContext.Provider>
-  );
+        m.latestSizeMm = dated.find(
+          (entry) => entry.sizeMm !== undefined,
+        )?.sizeMm;
+        m.symptomFlags =
+          dated.find((entry) => entry.symptomChanges !== undefined)
+            ?.symptomChanges ?? m.symptomFlags;
+      }),
+    completeOnboarding: () =>
+      change((next) => {
+        next.account.onboardingComplete = true;
+        next.account.disclaimerAccepted = true;
+      }),
+    acceptDisclaimer: () =>
+      change((next) => {
+        next.account.disclaimerAccepted = true;
+      }),
+    getMolesForProfile: (id) => data.moles.filter((m) => m.profileId === id),
+    getMoleById: (id) => data.moles.find((m) => m.id === id),
+  };
+  return <Context.Provider value={value}>{children}</Context.Provider>;
 }
-
 export function useApp() {
-  const context = useContext(AppContext);
-  if (!context) throw new Error("useApp must be used within AppProvider");
+  const context = useContext(Context);
+  if (!context) throw new Error("useApp requires AppProvider");
   return context;
 }

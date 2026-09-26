@@ -14,11 +14,14 @@ registration, reports, optional browser AI and optional future synchronization.
 
 The web app uses SQLite in browser storage.
 **All records** shows every spot in the active profile.
-**Body map / add spot** guides location selection; open a record to add photos
-or observations.
+**Record a spot** guides location, photograph and observations in three steps.
+Open a record to add dated photos or observations, or compare two photos.
 **Backups** downloads or restores SQLite.
-Affine registration, AI classification and printable clinician reports are not
-yet implemented.
+Manual affine overlays support translation, rotation, scale, stretch and shear.
+Adjustments are temporary; originals remain unchanged.
+**Visit report** previews explicitly selected records for printing or a portable
+HTML download with photographs.
+Automatic registration and AI classification remain future work.
 Native storage does not have the web backup guarantees.
 
 Mole Tracker keeps a personal skin history; it does not diagnose skin
@@ -35,12 +38,16 @@ Normal recording does not upload your records or photos.
 Browser storage and SQLite backups are **not encrypted**.
 Keep backups in a private location outside this browser.
 Clearing site data can erase the local history; restoring a file replaces it.
-The current restore validator and save/error handling need the improvements
-listed in the review before this should be your only copy.
+Saves commit atomically before the interface reports success.
+Conflicting tabs are rejected rather than overwriting newer records.
+Restore validates schema, relationships and media, then previews counts before
+replacement.
+Backups are limited to 100 MB in this version.
 
-Photos are normally resized and re-encoded as JPEG.
-They are not archival originals, and a decode fallback can retain original
-metadata.
+Photos are resized to a maximum 2400 pixels and re-encoded as JPEG, stripping
+embedded metadata.
+Unsupported or undecodable images are rejected.
+Keep archival originals separately.
 Local data alone does not guarantee offline startup or protect against
 compromised app code.
 
@@ -50,7 +57,7 @@ compromised app code.
 npm ci
 npm start
 npm run typecheck
-node --test tests/security.test.cjs
+npm test
 npm run build
 ```
 

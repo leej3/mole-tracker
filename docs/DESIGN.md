@@ -5,6 +5,15 @@ This is the development baseline, not a claim that every requirement already
 works.
 See [the review](REVIEW.md) for implementation gaps and priorities.
 
+## Implemented baseline
+
+The web application now provides guided recording, atomic durable saves with
+conflict detection, validated SQLite restore with preview, metadata-stripping
+photo ingestion, manual affine comparison and selected-record portable reports.
+The detailed requirements below remain the target design; automatic alignment,
+AI, encryption, offline startup and optional synchronization remain roadmap
+work.
+
 ## Purpose
 
 Give an individual a private, understandable skin history that remains useful
