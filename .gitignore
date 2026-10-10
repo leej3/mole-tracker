@@ -50,3 +50,9 @@ yarn-error.*
 # Reproducible local registration build
 .build/
 public/registration/
+
+# Agent tooling and APM-owned skill deployments
+.pixi/
+apm_modules/
+/.agents/skills/design-ux/
+/.agents/skills/web-design-guidelines/

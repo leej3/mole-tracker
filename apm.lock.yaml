@@ -1,0 +1,92 @@
+lockfile_version: '1'
+apm_version: 0.31.0
+dependencies:
+- repo_url: leej3/agent-skills
+  name: web-interface-review
+  host: github.com
+  resolved_commit: 38e6898d326875108a5af769f74766d6b3edb313
+  resolved_ref: 38e6898d326875108a5af769f74766d6b3edb313
+  version: 0.1.0
+  virtual_path: skills/web-design-guidelines
+  is_virtual: true
+  package_type: hybrid
+  deployed_files:
+  - .agents/skills/web-design-guidelines
+  - .agents/skills/web-design-guidelines/SKILL.md
+  - .agents/skills/web-design-guidelines/apm.yml
+  deployed_file_hashes:
+    .agents/skills/web-design-guidelines/SKILL.md: sha256:f4647ca866a3accf763777f83e7682954f0187cd6bea7eea0399796652414e8f
+    .agents/skills/web-design-guidelines/apm.yml: sha256:28dd333ca7760f0219d5de5eb67d6caaa388bbbec9c7ad925320b74fa6af0206
+  content_hash: sha256:fff43c4c26248dfbda4b93f0c6c94022a6ee2dddaab3188cc02bcdccee32c73a
+- repo_url: leej3/ckw-design-skill
+  name: ckw-design-ux
+  host: github.com
+  resolved_commit: 9c2e1e8dfec699a363918ab71d53028025fd16fb
+  resolved_ref: 9c2e1e8dfec699a363918ab71d53028025fd16fb
+  version: 0.1.0
+  virtual_path: deterministic-design/design-ux
+  is_virtual: true
+  package_type: hybrid
+  deployed_files:
+  - .agents/skills/design-ux
+  - .agents/skills/design-ux/SKILL.md
+  - .agents/skills/design-ux/apm.yml
+  deployed_file_hashes:
+    .agents/skills/design-ux/SKILL.md: sha256:206f1abdf6552883b775988b651b948aaa241bbca99b9c279e819331d6fb9693
+    .agents/skills/design-ux/apm.yml: sha256:c337986e847a8307b043e08907df9eae4d5509d1fa1433cab745ddda965d35c4
+  content_hash: sha256:b569f835089b98a257bc2eb0ccf192979fe6398f37a4fda1c7a5f6843b57dbd9
+deployments:
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/design-ux
+  runtime: null
+  scope: project
+  owners:
+  - leej3/ckw-design-skill/deterministic-design/design-ux
+  active_owner: leej3/ckw-design-skill/deterministic-design/design-ux
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/design-ux/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - leej3/ckw-design-skill/deterministic-design/design-ux
+  active_owner: leej3/ckw-design-skill/deterministic-design/design-ux
+  content_hash: sha256:206f1abdf6552883b775988b651b948aaa241bbca99b9c279e819331d6fb9693
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/design-ux/apm.yml
+  runtime: null
+  scope: project
+  owners:
+  - leej3/ckw-design-skill/deterministic-design/design-ux
+  active_owner: leej3/ckw-design-skill/deterministic-design/design-ux
+  content_hash: sha256:c337986e847a8307b043e08907df9eae4d5509d1fa1433cab745ddda965d35c4
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/web-design-guidelines
+  runtime: null
+  scope: project
+  owners:
+  - leej3/agent-skills/skills/web-design-guidelines
+  active_owner: leej3/agent-skills/skills/web-design-guidelines
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/web-design-guidelines/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - leej3/agent-skills/skills/web-design-guidelines
+  active_owner: leej3/agent-skills/skills/web-design-guidelines
+  content_hash: sha256:f4647ca866a3accf763777f83e7682954f0187cd6bea7eea0399796652414e8f
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/web-design-guidelines/apm.yml
+  runtime: null
+  scope: project
+  owners:
+  - leej3/agent-skills/skills/web-design-guidelines
+  active_owner: leej3/agent-skills/skills/web-design-guidelines
+  content_hash: sha256:28dd333ca7760f0219d5de5eb67d6caaa388bbbec9c7ad925320b74fa6af0206

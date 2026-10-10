@@ -1,0 +1,13 @@
+name: mole-tracker
+version: 1.0.0
+description: Pinned UX guidance for Mole Tracker.
+author: leej3
+targets:
+  - agent-skills
+dependencies:
+  apm:
+    - leej3/ckw-design-skill/deterministic-design/design-ux#9c2e1e8dfec699a363918ab71d53028025fd16fb
+    - leej3/agent-skills/skills/web-design-guidelines#38e6898d326875108a5af769f74766d6b3edb313
+  mcp: []
+includes: []
+scripts: {}
