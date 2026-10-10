@@ -1,0 +1,10 @@
+Mole Tracker masked browser registration
+
+Based on ITKElastix (Copyright NumFOCUS) and elastix (Copyright UMC Utrecht
+and contributors), distributed under the Apache License, Version 2.0.
+https://github.com/InsightSoftwareConsortium/ITKElastix
+https://github.com/SuperElastix/elastix
+
+Modifications, October 2026: optional fixed/moving mask inputs and a 2D-only
+browser build profile. Original notices remain in the pinned upstream source. The runtime uses ITK-Wasm (Insight Software
+Consortium), also Apache-2.0. See the build manifest for exact revisions.

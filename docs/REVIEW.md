@@ -33,7 +33,9 @@ offline startup, encryption, independent JSON export and native-device testing.
 Manual alignment is temporary and does not infer physical growth.
 Reports currently include the full history of selected records, without a date
 range filter.
-AI classification and automatic registration have not been added.
+AI classification has not been added.
+A subsequent 10 October update adds ITKElastix browser affine registration with
+fixed/moving exclusion masks; see the [engine verification notes](../vendor/itkelastix/README.md).
 The findings below retain the original audit context; evidence line numbers
 refer to that reviewed version.
 

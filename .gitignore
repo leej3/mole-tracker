@@ -5,7 +5,7 @@ node_modules/
 
 # Expo
 .expo/
-dist/
+/dist/
 web-build/
 public/sql-wasm.wasm
 expo-env.d.ts
@@ -46,3 +46,7 @@ yarn-error.*
 *.sqlite3
 *.db
 /Mole-Tracker-source-code.pdf
+
+# Reproducible local registration build
+.build/
+public/registration/

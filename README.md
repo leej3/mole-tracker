@@ -17,11 +17,15 @@ The web app uses SQLite in browser storage.
 **Record a spot** guides location, photograph and observations in three steps.
 Open a record to add dated photos or observations, or compare two photos.
 **Backups** downloads or restores SQLite.
-Manual affine overlays support translation, rotation, scale, stretch and shear.
+Automatic affine alignment uses ITKElastix in a browser worker.
+Mark each mole center and exclusion circle; matching uses surrounding skin.
+Manual controls support translation, rotation, scale, stretch and shear.
 Adjustments are temporary; originals remain unchanged.
 **Visit report** previews explicitly selected records for printing or a portable
 HTML download with photographs.
-Automatic registration and AI classification remain future work.
+AI classification remains future work.
+See [the browser registration build](vendor/itkelastix/README.md) for its
+source, mask extension, build recipe and test procedure.
 Native storage does not have the web backup guarantees.
 
 Mole Tracker keeps a personal skin history; it does not diagnose skin

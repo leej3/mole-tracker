@@ -1,0 +1,30 @@
+--- a/wasm/elastix-wasm.cxx
++++ b/wasm/elastix-wasm.cxx
+@@ -54,6 +54,12 @@
+     // produced them is still alive.
+     typename RegistrationType::Pointer registration;
+ 
++    using MaskType = itk::Image<unsigned char, ImageType::ImageDimension>;
++    itk::wasm::InputImage<MaskType> fixedMask;
++    auto * fixedMaskOption = pipeline.add_option("--fixed-mask", fixedMask, "Fixed image sampling mask (nonzero includes pixel)")->type_name("INPUT_IMAGE");
++    itk::wasm::InputImage<MaskType> movingMask;
++    auto * movingMaskOption = pipeline.add_option("--moving-mask", movingMask, "Moving image sampling mask (nonzero includes pixel)")->type_name("INPUT_IMAGE");
++
+     using InputImageType = itk::wasm::InputImage<ImageType>;
+     InputImageType fixedImage;
+     pipeline.add_option("-f,--fixed", fixedImage, "Fixed image")->type_name("INPUT_IMAGE");
+@@ -131,6 +137,14 @@
+     registration->SetFixedImage(fixedCaster->GetOutput());
+     registration->SetMovingImage(movingCaster->GetOutput());
+     registration->SetParameterObject(parameterObject);
++    if (fixedMaskOption->count())
++    {
++      registration->SetFixedMask(const_cast<MaskType *>(fixedMask.Get()));
++    }
++    if (movingMaskOption->count())
++    {
++      registration->SetMovingMask(const_cast<MaskType *>(movingMask.Get()));
++    }
+ 
+     // Any ITK transform parameterization is accepted as the external initial transform: a single
+     // transform, a transform chain, or a composite transform, from the wasm memory store or a file.

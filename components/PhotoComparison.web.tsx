@@ -6,8 +6,11 @@ import { displayDate } from "@/lib/locations";
 import { Button } from "./ui/Button";
 import { Choice, Copy } from "./ui/Screen";
 import { useColors } from "@/hooks/useColors";
+import { AutomaticAlignment } from "./AutomaticAlignment.web";
 export function PhotoComparison({ photos }: { photos: MolePhoto[] }) {
   const colors = useColors();
+  const [automatic, setAutomatic] = useState(false),
+    [alignedUri, setAlignedUri] = useState<string | null>(null);
   const ordered = [...photos].sort((a, b) =>
     a.capturedAt.localeCompare(b.capturedAt),
   );
@@ -22,6 +25,8 @@ export function PhotoComparison({ photos }: { photos: MolePhoto[] }) {
   if (!a || !b) return null;
   const choose = (setter: (v: string) => void, id: string) => {
     setter(id);
+    setAlignedUri(null);
+    setAutomatic(false);
     setAlignment({ ...identityAlignment });
   };
   const matrix = affineMatrix(alignment);
@@ -111,6 +116,33 @@ export function PhotoComparison({ photos }: { photos: MolePhoto[] }) {
           onPress={() => setOverlay(true)}
         />
       </View>
+      {first !== second && (
+        <Choice
+          label="Automatic skin alignment"
+          selected={automatic}
+          onPress={() => setAutomatic((v) => !v)}
+        />
+      )}
+      {automatic && first !== second && (
+        <AutomaticAlignment
+          key={`${first}:${second}`}
+          fixedUri={a.localUri}
+          movingUri={b.localUri}
+          onReset={() => setAlignedUri(null)}
+          onAligned={(uri) => {
+            setAlignedUri(uri);
+            setAlignment({ ...identityAlignment });
+            setOverlay(true);
+            setAutomatic(false);
+          }}
+        />
+      )}
+      {alignedUri && (
+        <Copy>
+          Showing the automatic alignment preview. Reset alignment returns to
+          the original photograph.
+        </Copy>
+      )}
       {first === second ? (
         <Copy>Choose two different photos to compare.</Copy>
       ) : overlay ? (
@@ -135,7 +167,7 @@ export function PhotoComparison({ photos }: { photos: MolePhoto[] }) {
               }}
             />
             <img
-              src={b.localUri}
+              src={alignedUri || b.localUri}
               alt={`Aligned comparison ${displayDate(b.capturedAt)}`}
               style={{
                 position: "absolute",
@@ -204,7 +236,10 @@ export function PhotoComparison({ photos }: { photos: MolePhoto[] }) {
           <Button
             title="Reset alignment"
             variant="ghost"
-            onPress={() => setAlignment({ ...identityAlignment })}
+            onPress={() => {
+              setAlignment({ ...identityAlignment });
+              setAlignedUri(null);
+            }}
           />
         </>
       ) : (

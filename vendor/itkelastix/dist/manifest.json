@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/InsightSoftwareConsortium/ITKElastix",
+  "revision": "8df864da886aa540a3506d440b923dfea36f08ba",
+  "image": "itkwasm/emscripten@sha256:01dad54f4c45b420e59a3bd5f3fb86e97fc09d6db0e410dfbdcfd9a8529137eb",
+  "runtime": "1.0.0-b.201",
+  "patches": {
+    "masks.patch": "366cf06ff24c3d4f672c69ba0f5db8c986e7799de275d970e121901df6f5e1ea",
+    "browser-profile.patch": "495b182bb9c970dfaeb918d8f3dbc316032b1e63e02d8e237d21fe8b33fe7884"
+  },
+  "files": {
+    "elastix.js": "c545496ac43c3c44af1ae484c9481e0beb766a325817957dddb57e6452ad0a99",
+    "elastix.wasm.zst": "7ec36e5d3e4345dd284bf720ccc4f98473b0a5f93c4c494f943a08d6abb3c629"
+  }
+}

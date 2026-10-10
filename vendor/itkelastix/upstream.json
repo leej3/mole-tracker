@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/InsightSoftwareConsortium/ITKElastix",
+  "revision": "8df864da886aa540a3506d440b923dfea36f08ba",
+  "image": "itkwasm/emscripten@sha256:01dad54f4c45b420e59a3bd5f3fb86e97fc09d6db0e410dfbdcfd9a8529137eb",
+  "runtime": "1.0.0-b.201",
+  "runtimePackageIntegrity": "sha512-XHYF+EwU6bClNH0gjPcMVwn76htnWIRchavOMph5K0vHXtjxInO2Eaa81AZtC+uIySHu5GTgyNhQam4GI5InDA==",
+  "runtimeBrowserSha256": "be57fae1905d474581f121ae837e8a6303c0cdd7c2ac3536767dedd2606d58ca"
+}

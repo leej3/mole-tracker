@@ -9,10 +9,10 @@ See [the review](REVIEW.md) for implementation gaps and priorities.
 
 The web application now provides guided recording, atomic durable saves with
 conflict detection, validated SQLite restore with preview, metadata-stripping
-photo ingestion, manual affine comparison and selected-record portable reports.
-The detailed requirements below remain the target design; automatic alignment,
-AI, encryption, offline startup and optional synchronization remain roadmap
-work.
+photo ingestion, masked browser affine registration, manual comparison and
+selected-record portable reports.
+The detailed requirements below remain the target design; AI, encryption,
+offline startup and optional synchronization remain roadmap work.
 
 ## Purpose
 
@@ -228,8 +228,9 @@ translation, represented by a 2×3 matrix.
 Three non-collinear landmark pairs can determine its six parameters; extra pairs
 allow fitting and residual checks.
 
-Default to similarity because shear and non-uniform scale can obscure changes in
-shape.
+Manual controls default to similarity.
+Automated affine proposals bound scale and shear because these can obscure
+changes in shape.
 Do not fit the changing lesion boundary to itself: use surrounding stable
 landmarks, keep originals visible, and make alignment reversible.
 Changing skin pose, camera perspective, lighting and focus may defeat a global
@@ -243,14 +244,20 @@ Derive previews without replacing source images.
 Pixel-area differences are not physical growth unless capture scale is
 calibrated; lighting differences are not evidence of biological change.
 
-An optional automated proposal could use feature matching with robust outlier
-rejection, followed by intensity-based refinement.
-OpenCV documents
-[affine ECC alignment](https://docs.opencv.org/4.x/dc/d6b/group__video__track.html).
-That is an implementation candidate, not proof it works for these photographs.
-Benchmark on synthetic known transforms and varied
-consenting/test images; reject low overlap, degenerate fits and implausible scale/shear.
-Require explicit user acceptance and retain the original comparison.
+Automatic alignment uses
+[ITKElastix](https://github.com/InsightSoftwareConsortium/ITKElastix) compiled
+to WebAssembly with a local extension exposing fixed and moving masks.
+All processing runs in a cancellable browser worker using same-origin assets.
+The mole and a sampling margin are excluded in both images.
+User-marked centers initialize translation, without constraining the final fit.
+The affine objective uses normalized correlation of surrounding skin.
+Before forming pyramids, excluded lesion pixels are neutralized; masks keep the
+resulting artificial boundary out of sampling.
+
+The first implementation uses bounded 512-pixel working images and temporary
+previews.
+It rejects insufficient texture, low
+overlap/correlation and implausible transforms, then lets the user preview the overlay or retain the originals. Thresholds are engineering checks, not calibrated confidence scores. Source-image hashes and persistent transform provenance remain future work. See the [build and validation notes](../vendor/itkelastix/README.md).
 
 ## Optional browser AI
 
